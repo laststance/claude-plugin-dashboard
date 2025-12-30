@@ -1,0 +1,14 @@
+# Source files (not needed in npm package)
+source/
+reference/
+*.ts
+!*.d.ts
+
+# Development files
+.gitignore
+tsconfig.json
+pnpm-lock.yaml
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,60 @@
+{
+  "name": "@laststance/claude-plugin-dashboard",
+  "version": "0.1.0",
+  "description": "Interactive CLI dashboard to manage Claude Code plugins",
+  "license": "MIT",
+  "author": "Ryota Murakami <ryota.murakami@laststance.io> (https://github.com/ryota-murakami)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/laststance/claude-code-plugin-dashboard"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "plugin",
+    "cli",
+    "dashboard",
+    "anthropic",
+    "terminal",
+    "tui"
+  ],
+  "bin": {
+    "claude-plugin-dashboard": "./dist/cli.js"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist"
+  ],
+  "packageManager": "pnpm@10.26.2",
+  "lint-staged": {
+    "*": "prettier --ignore-unknown --write"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "link": "pnpm build && pnpm link --global",
+    "prepublishOnly": "pnpm build",
+    "prepare": "husky",
+    "prettier": "prettier --ignore-unknown --write ."
+  },
+  "dependencies": {
+    "ink": "^5.1.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@sindresorhus/tsconfig": "^6.0.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.4",
+    "typescript": "^5.7.2"
+  }
+}
