@@ -6,7 +6,7 @@
   "author": "Ryota Murakami <ryota.murakami@laststance.io> (https://github.com/ryota-murakami)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/laststance/claude-code-plugin-dashboard"
+    "url": "https://github.com/laststance/claude-plugin-dashboard"
   },
   "publishConfig": {
     "access": "public"
