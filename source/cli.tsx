@@ -366,5 +366,12 @@ if (command) {
     process.exit(1)
   }
 
-  render(<App />)
+  const instance = render(<App />)
+
+  // Clear screen when app exits (q key or Ctrl+C)
+  instance.waitUntilExit().then(() => {
+    instance.clear()
+    // Clear entire terminal screen and reset cursor to top-left
+    process.stdout.write('\x1b[2J\x1b[H')
+  })
 }
