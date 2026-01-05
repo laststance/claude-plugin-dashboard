@@ -92,9 +92,13 @@ class TestTabNavigation:
         keys.send_key(child, keys.TAB, delay=0.2)
         time.sleep(0.3)
 
-        # Read current buffer
-        child.read_nonblocking(size=10000, timeout=0.5)
-        output = child.before.decode('utf-8') if isinstance(child.before, bytes) else str(child.before)
+        # Read current buffer (may timeout if no pending data)
+        try:
+            child.read_nonblocking(size=10000, timeout=0.5)
+        except pexpect.TIMEOUT:
+            pass  # No pending data is acceptable
+
+        output = child.before.decode('utf-8') if isinstance(child.before, bytes) else str(child.before or '')
 
         # Count header occurrences
         header_count = output.count('Plugin Dashboard')

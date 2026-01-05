@@ -569,6 +569,31 @@ describe('App component', () => {
       await waitForRender()
       expect(lastFrame()).toContain('Installed plugins')
     })
+
+    it('should navigate to next tab with Ctrl+F (Emacs-style)', async () => {
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Ctrl+F should work like right arrow
+      stdin.write('\x06')
+      await waitForRender()
+      expect(lastFrame()).toContain('Installed plugins')
+    })
+
+    it('should navigate to previous tab with Ctrl+B (Emacs-style)', async () => {
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // First go right (from enabled to installed)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      expect(lastFrame()).toContain('Installed plugins')
+
+      // Then Ctrl+B should go back to enabled
+      stdin.write('\x02')
+      await waitForRender()
+      expect(lastFrame()).toContain('Enabled plugins')
+    })
   })
 
   describe('plugin actions', () => {

@@ -63,6 +63,31 @@ class TestTabNavigation:
 
         keys.quit(child)
 
+    def test_tab_switch_with_ctrl_f(self, spawn_cli, keys):
+        """Ctrl+F switches to next tab (Emacs-style)."""
+        child = spawn_cli()
+        child.expect('Discover', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Ctrl+F to next tab
+        keys.send_key(child, keys.CTRL_F)
+
+        keys.quit(child)
+
+    def test_tab_switch_with_ctrl_b(self, spawn_cli, keys):
+        """Ctrl+B switches to previous tab (Emacs-style)."""
+        child = spawn_cli()
+        child.expect('Discover', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Go forward first
+        keys.send_key(child, keys.CTRL_F, delay=0.2)
+
+        # Then go back with Ctrl+B
+        keys.send_key(child, keys.CTRL_B)
+
+        keys.quit(child)
+
 
 @pytest.mark.e2e
 class TestListNavigation:

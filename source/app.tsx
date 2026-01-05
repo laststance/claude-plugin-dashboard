@@ -378,13 +378,21 @@ export default function App() {
       return
     }
 
-    // Emacs-style navigation (Ctrl+P / Ctrl+N)
+    // Emacs-style navigation (Ctrl+P / Ctrl+N for vertical, Ctrl+B / Ctrl+F for horizontal)
     if (key.ctrl && input === 'p') {
       dispatch({ type: 'MOVE_SELECTION', payload: 'up' })
       return
     }
     if (key.ctrl && input === 'n') {
       dispatch({ type: 'MOVE_SELECTION', payload: 'down' })
+      return
+    }
+    if (key.ctrl && input === 'b') {
+      dispatch({ type: 'PREV_TAB' })
+      return
+    }
+    if (key.ctrl && input === 'f') {
+      dispatch({ type: 'NEXT_TAB' })
       return
     }
 

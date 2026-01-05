@@ -30,6 +30,8 @@ class Keys:
     # Ctrl keys (Emacs-style navigation)
     CTRL_N = '\x0e'  # Next (down)
     CTRL_P = '\x10'  # Previous (up)
+    CTRL_F = '\x06'  # Forward (next tab)
+    CTRL_B = '\x02'  # Back (prev tab)
     CTRL_C = '\x03'  # Interrupt
     CTRL_D = '\x04'  # EOF
 
