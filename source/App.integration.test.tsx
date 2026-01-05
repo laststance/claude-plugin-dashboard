@@ -518,6 +518,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Installed tab (where isInstalled: true, isEnabled: false plugins are visible)
+      stdin.write('\t')
+      await waitForRender()
+
       // Press space to toggle
       stdin.write(' ')
       await waitForRender()
@@ -576,6 +580,13 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (where non-installed plugins are visible)
+      // Enabled → Installed → Discover
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
       await waitForRender()
 
       // Press i to install
