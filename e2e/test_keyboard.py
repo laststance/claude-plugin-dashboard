@@ -151,6 +151,29 @@ class TestSearchFunctionality:
 
         keys.quit(child)
 
+    def test_exit_search_with_down_arrow(self, spawn_cli, keys):
+        """Down arrow exits search mode and returns to list (Issue #3)."""
+        child = spawn_cli()
+        child.expect('Discover', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Navigate to Discover tab (Enabled → Installed → Discover)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        keys.send_key(child, keys.TAB, delay=0.2)
+
+        # Activate search with /
+        keys.send_key(child, '/')
+        time.sleep(0.3)
+
+        # Exit search with Down arrow
+        keys.send_key(child, keys.DOWN)
+        time.sleep(0.3)
+
+        # Should still be on Discover tab
+        child.expect('Discover', timeout=2)
+
+        keys.quit(child)
+
 
 @pytest.mark.e2e
 class TestQuitBehavior:

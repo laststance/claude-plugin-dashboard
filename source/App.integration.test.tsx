@@ -317,6 +317,35 @@ describe('App component', () => {
       expect(lastFrame()).toContain('Discover')
     })
 
+    it('should exit search mode with Down arrow', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
+      // Enter search mode
+      stdin.write('/')
+      await waitForRender()
+
+      // Should show cursor indicator (active search mode)
+      expect(lastFrame()).toMatch(/▌/)
+
+      // Exit with Down arrow
+      stdin.write('\x1B[B')
+      await waitForRender()
+
+      // Should still be on discover tab, no longer in search mode
+      expect(lastFrame()).toContain('Discover')
+    })
+
     it('should type characters in search mode', async () => {
       mockLoadAllPlugins.mockReturnValue([
         createMockPlugin({ id: 'p1@m', name: 'alpha-plugin' }),

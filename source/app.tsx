@@ -357,7 +357,7 @@ export default function App() {
 
     // Search mode input
     if (isSearchMode) {
-      if (key.escape || key.return) {
+      if (key.escape || key.return || key.downArrow) {
         setIsSearchMode(false)
         return
       }
