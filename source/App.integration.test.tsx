@@ -273,6 +273,12 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Enter search mode
       stdin.write('/')
       await waitForRender()
@@ -291,6 +297,12 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
       await waitForRender()
 
       // Enter search mode
@@ -314,6 +326,12 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Enter search mode and type
       stdin.write('/')
       await waitForRender()
@@ -330,6 +348,12 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
       await waitForRender()
 
       // Enter search mode and type
@@ -355,11 +379,18 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Press s to change sort
       stdin.write('s')
       await waitForRender()
 
-      expect(lastFrame()).toBeDefined()
+      // Should still be on Discover tab with sort applied
+      expect(lastFrame()).toContain('Discover')
     })
 
     it('should toggle sort order with S key', async () => {
@@ -370,11 +401,18 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Press S to toggle order
       stdin.write('S')
       await waitForRender()
 
-      expect(lastFrame()).toBeDefined()
+      // Should still be on Discover tab with sort order toggled
+      expect(lastFrame()).toContain('Discover')
     })
   })
 
@@ -780,6 +818,12 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Enter search mode and type
       stdin.write('/')
       await waitForRender()
@@ -794,7 +838,8 @@ describe('App component', () => {
       stdin.write('\x1B')
       await waitForRender()
 
-      expect(lastFrame()).toBeDefined()
+      // Should still be on Discover tab
+      expect(lastFrame()).toContain('Discover')
     })
   })
 })
