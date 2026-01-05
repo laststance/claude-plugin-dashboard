@@ -723,19 +723,52 @@ export default function App() {
 
       {/* Footer with key hints */}
       <KeyHints
-        extraHints={
-          state.activeTab === 'enabled' ||
-          state.activeTab === 'installed' ||
-          state.activeTab === 'discover'
-            ? [
-                { key: 'i', action: 'install' },
-                { key: 'u', action: 'uninstall' },
-                ...(state.activeTab === 'discover'
-                  ? [{ key: 's', action: 'sort' }]
-                  : []),
-              ]
-            : undefined
-        }
+        extraHints={(() => {
+          // Search mode hint
+          if (isSearchMode) {
+            return [{ key: 'Enter', action: 'exit search' }]
+          }
+
+          // Plugin tabs hints
+          if (
+            state.activeTab === 'enabled' ||
+            state.activeTab === 'installed' ||
+            state.activeTab === 'discover'
+          ) {
+            const hints = [
+              { key: 'i', action: 'install' },
+              { key: 'u', action: 'uninstall' },
+            ]
+
+            // Get selected plugin to determine Enter action
+            const items =
+              state.activeTab === 'enabled'
+                ? enabledPlugins
+                : state.activeTab === 'installed'
+                  ? installedPlugins
+                  : filteredPlugins
+
+            const selectedPlugin = items[state.selectedIndex]
+
+            // Add contextual Enter hint
+            if (selectedPlugin) {
+              if (!selectedPlugin.isInstalled) {
+                hints.push({ key: 'Enter', action: 'install' })
+              } else {
+                hints.push({ key: 'Enter', action: 'toggle' })
+              }
+            }
+
+            // Add sort hint for discover tab
+            if (state.activeTab === 'discover') {
+              hints.push({ key: 's', action: 'sort' })
+            }
+
+            return hints
+          }
+
+          return undefined
+        })()}
       />
     </Box>
   )

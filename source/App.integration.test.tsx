@@ -1125,4 +1125,73 @@ describe('App component', () => {
       expect(lastFrame()).toContain('help')
     })
   })
+
+  describe('contextual Enter key hints', () => {
+    it('should show "Enter toggle" for installed plugin on Enabled tab', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'enabled-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame } = render(<App />)
+      await waitForRender()
+
+      // Should show Enter toggle hint
+      expect(lastFrame()).toContain('Enter')
+      expect(lastFrame()).toContain('toggle')
+    })
+
+    it('should show "Enter install" for non-installed plugin on Discover tab', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'new-plugin',
+          isInstalled: false,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
+      await waitForRender()
+
+      // Should show Enter install hint
+      expect(lastFrame()).toContain('Enter')
+      expect(lastFrame()).toContain('install')
+    })
+
+    it('should show "Enter exit search" when in search mode', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab and enter search mode
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('/')
+      await waitForRender()
+
+      // Should show Enter exit search hint
+      expect(lastFrame()).toContain('Enter')
+      expect(lastFrame()).toContain('exit search')
+    })
+  })
 })
