@@ -36,10 +36,11 @@ describe('KeyHints', () => {
       expect(lastFrame()).toContain('search')
     })
 
-    it('should render quit hint', () => {
+    it('should render quit hint with Ctrl+C', () => {
       const { lastFrame } = render(<KeyHints />)
 
       expect(lastFrame()).toContain('q')
+      expect(lastFrame()).toContain('^C')
       expect(lastFrame()).toContain('quit')
     })
   })

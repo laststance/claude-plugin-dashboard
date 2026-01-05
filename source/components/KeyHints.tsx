@@ -22,7 +22,7 @@ export default function KeyHints({ extraHints }: KeyHintsProps) {
     { key: '↑/↓', action: 'navigate' },
     { key: 'Space', action: 'toggle' },
     { key: '/', action: 'search' },
-    { key: 'q', action: 'quit' },
+    { key: 'q/^C', action: 'quit' },
   ]
 
   const allHints = extraHints ? [...baseHints, ...extraHints] : baseHints
