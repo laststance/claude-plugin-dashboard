@@ -28,7 +28,7 @@ import type { AppState, Action, Plugin } from './types/index.js'
 /**
  * Initial application state
  */
-const initialState: AppState = {
+export const initialState: AppState = {
   activeTab: 'discover',
   plugins: [],
   marketplaces: [],
@@ -48,7 +48,7 @@ const initialState: AppState = {
 /**
  * State reducer for application state management
  */
-function appReducer(state: AppState, action: Action): AppState {
+export function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'SET_TAB':
       return {
@@ -222,7 +222,7 @@ function appReducer(state: AppState, action: Action): AppState {
 /**
  * Get items array for current tab
  */
-function getItemsForTab(state: AppState): unknown[] {
+export function getItemsForTab(state: AppState): unknown[] {
   switch (state.activeTab) {
     case 'discover':
       return getFilteredPlugins(state)
@@ -240,7 +240,7 @@ function getItemsForTab(state: AppState): unknown[] {
 /**
  * Get filtered and sorted plugins for discover tab
  */
-function getFilteredPlugins(state: AppState): Plugin[] {
+export function getFilteredPlugins(state: AppState): Plugin[] {
   let plugins = state.plugins
 
   // Apply search filter

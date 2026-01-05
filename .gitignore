@@ -27,3 +27,6 @@ Thumbs.db
 __pycache__/
 .pytest_cache/
 *.pyc
+
+# Vitest
+coverage/

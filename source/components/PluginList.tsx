@@ -102,16 +102,33 @@ export default function PluginList({
 
 /**
  * Truncate text to max length with ellipsis
+ * @param text - The text to truncate
+ * @param maxLength - Maximum length including ellipsis
+ * @returns
+ * - Original text if within maxLength
+ * - Truncated text with "..." suffix if exceeds maxLength
+ * @example
+ * truncate('Hello', 10)        // => 'Hello'
+ * truncate('Hello World', 8)   // => 'Hello...'
  */
-function truncate(text: string, maxLength: number): string {
+export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength - 3) + '...'
 }
 
 /**
  * Format large numbers with K/M suffix
+ * @param count - The number to format
+ * @returns
+ * - "X.XM" for millions (>= 1,000,000)
+ * - "X.XK" for thousands (>= 1,000)
+ * - String representation for smaller numbers
+ * @example
+ * formatCount(1500)     // => '1.5K'
+ * formatCount(1200000)  // => '1.2M'
+ * formatCount(500)      // => '500'
  */
-function formatCount(count: number): string {
+export function formatCount(count: number): string {
   if (count >= 1000000) {
     return `${(count / 1000000).toFixed(1)}M`
   }

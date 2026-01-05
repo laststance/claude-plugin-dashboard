@@ -42,7 +42,10 @@
     "link": "pnpm build && pnpm link --global",
     "prepublishOnly": "pnpm build",
     "prepare": "husky",
-    "prettier": "prettier --ignore-unknown --write ."
+    "prettier": "prettier --ignore-unknown --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "ink": "^5.1.0",
@@ -52,9 +55,12 @@
     "@sindresorhus/tsconfig": "^6.0.0",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.18",
+    "@vitest/coverage-v8": "^4.0.16",
     "husky": "^9.1.7",
+    "ink-testing-library": "^4.0.0",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.16"
   }
 }
