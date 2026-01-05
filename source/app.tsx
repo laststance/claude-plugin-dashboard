@@ -8,6 +8,7 @@ import { Box, Text, useInput, useApp } from 'ink'
 import TabBar, { getNextTab } from './components/TabBar.js'
 import KeyHints from './components/KeyHints.js'
 import DiscoverTab from './tabs/DiscoverTab.js'
+import EnabledTab from './tabs/EnabledTab.js'
 import InstalledTab from './tabs/InstalledTab.js'
 import MarketplacesTab from './tabs/MarketplacesTab.js'
 import ErrorsTab from './tabs/ErrorsTab.js'
@@ -29,7 +30,7 @@ import type { AppState, Action, Plugin } from './types/index.js'
  * Initial application state
  */
 export const initialState: AppState = {
-  activeTab: 'discover',
+  activeTab: 'enabled',
   plugins: [],
   marketplaces: [],
   errors: [],
@@ -224,10 +225,12 @@ export function appReducer(state: AppState, action: Action): AppState {
  */
 export function getItemsForTab(state: AppState): unknown[] {
   switch (state.activeTab) {
-    case 'discover':
-      return getFilteredPlugins(state)
+    case 'enabled':
+      return state.plugins.filter((p) => p.isInstalled && p.isEnabled)
     case 'installed':
       return state.plugins.filter((p) => p.isInstalled)
+    case 'discover':
+      return getFilteredPlugins(state)
     case 'marketplaces':
       return state.marketplaces
     case 'errors':
@@ -418,12 +421,16 @@ export default function App() {
     // Toggle plugin (Space or Enter)
     if (
       (input === ' ' || key.return) &&
-      (state.activeTab === 'discover' || state.activeTab === 'installed')
+      (state.activeTab === 'enabled' ||
+        state.activeTab === 'installed' ||
+        state.activeTab === 'discover')
     ) {
       const items =
-        state.activeTab === 'installed'
-          ? state.plugins.filter((p) => p.isInstalled)
-          : getFilteredPlugins(state)
+        state.activeTab === 'enabled'
+          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
+          : state.activeTab === 'installed'
+            ? state.plugins.filter((p) => p.isInstalled)
+            : getFilteredPlugins(state)
 
       const selectedPlugin = items[state.selectedIndex]
       if (selectedPlugin && selectedPlugin.isInstalled) {
@@ -481,15 +488,19 @@ export default function App() {
       return
     }
 
-    // Install (i key) - only on discover/installed tabs
+    // Install (i key) - only on enabled/installed/discover tabs
     if (
       input === 'i' &&
-      (state.activeTab === 'discover' || state.activeTab === 'installed')
+      (state.activeTab === 'enabled' ||
+        state.activeTab === 'installed' ||
+        state.activeTab === 'discover')
     ) {
       const items =
-        state.activeTab === 'installed'
-          ? state.plugins.filter((p) => p.isInstalled)
-          : getFilteredPlugins(state)
+        state.activeTab === 'enabled'
+          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
+          : state.activeTab === 'installed'
+            ? state.plugins.filter((p) => p.isInstalled)
+            : getFilteredPlugins(state)
 
       const selectedPlugin = items[state.selectedIndex]
       if (selectedPlugin && !selectedPlugin.isInstalled) {
@@ -503,15 +514,19 @@ export default function App() {
       return
     }
 
-    // Uninstall (u key) - only on discover/installed tabs
+    // Uninstall (u key) - only on enabled/installed/discover tabs
     if (
       input === 'u' &&
-      (state.activeTab === 'discover' || state.activeTab === 'installed')
+      (state.activeTab === 'enabled' ||
+        state.activeTab === 'installed' ||
+        state.activeTab === 'discover')
     ) {
       const items =
-        state.activeTab === 'installed'
-          ? state.plugins.filter((p) => p.isInstalled)
-          : getFilteredPlugins(state)
+        state.activeTab === 'enabled'
+          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
+          : state.activeTab === 'installed'
+            ? state.plugins.filter((p) => p.isInstalled)
+            : getFilteredPlugins(state)
 
       const selectedPlugin = items[state.selectedIndex]
       if (selectedPlugin && selectedPlugin.isInstalled) {
@@ -550,6 +565,9 @@ export default function App() {
 
   // Get filtered data for current tab
   const filteredPlugins = getFilteredPlugins(state)
+  const enabledPlugins = state.plugins.filter(
+    (p) => p.isInstalled && p.isEnabled,
+  )
   const installedPlugins = state.plugins.filter((p) => p.isInstalled)
 
   return (
@@ -568,6 +586,20 @@ export default function App() {
 
       {/* Tab content */}
       <Box flexGrow={1} flexDirection="column">
+        {state.activeTab === 'enabled' && (
+          <EnabledTab
+            plugins={enabledPlugins}
+            selectedIndex={state.selectedIndex}
+          />
+        )}
+
+        {state.activeTab === 'installed' && (
+          <InstalledTab
+            plugins={installedPlugins}
+            selectedIndex={state.selectedIndex}
+          />
+        )}
+
         {state.activeTab === 'discover' && (
           <DiscoverTab
             plugins={filteredPlugins}
@@ -576,13 +608,6 @@ export default function App() {
             sortBy={state.sortBy}
             sortOrder={state.sortOrder}
             isSearchMode={isSearchMode}
-          />
-        )}
-
-        {state.activeTab === 'installed' && (
-          <InstalledTab
-            plugins={installedPlugins}
-            selectedIndex={state.selectedIndex}
           />
         )}
 
@@ -616,7 +641,9 @@ export default function App() {
       {/* Footer with key hints */}
       <KeyHints
         extraHints={
-          state.activeTab === 'discover' || state.activeTab === 'installed'
+          state.activeTab === 'enabled' ||
+          state.activeTab === 'installed' ||
+          state.activeTab === 'discover'
             ? [
                 { key: 'i', action: 'install' },
                 { key: 'u', action: 'uninstall' },

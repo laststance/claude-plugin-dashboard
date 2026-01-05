@@ -92,7 +92,7 @@ function createMockError(overrides: Partial<PluginError> = {}): PluginError {
 
 describe('initialState', () => {
   it('should have correct default values', () => {
-    expect(initialState.activeTab).toBe('discover')
+    expect(initialState.activeTab).toBe('enabled')
     expect(initialState.plugins).toEqual([])
     expect(initialState.marketplaces).toEqual([])
     expect(initialState.errors).toEqual([])
@@ -135,7 +135,7 @@ describe('appReducer', () => {
     })
 
     it('NEXT_TAB cycles to next tab', () => {
-      const state: AppState = { ...initialState, activeTab: 'discover' }
+      const state: AppState = { ...initialState, activeTab: 'enabled' }
       const result = appReducer(state, { type: 'NEXT_TAB' })
       expect(result.activeTab).toBe('installed')
     })
@@ -143,7 +143,7 @@ describe('appReducer', () => {
     it('PREV_TAB cycles to previous tab', () => {
       const state: AppState = { ...initialState, activeTab: 'installed' }
       const result = appReducer(state, { type: 'PREV_TAB' })
-      expect(result.activeTab).toBe('discover')
+      expect(result.activeTab).toBe('enabled')
     })
   })
 
@@ -198,7 +198,10 @@ describe('appReducer', () => {
     it('MOVE_SELECTION up decreases index', () => {
       const state: AppState = {
         ...initialState,
-        plugins: [createMockPlugin(), createMockPlugin()],
+        plugins: [
+          createMockPlugin({ id: 'p1@m', isInstalled: true, isEnabled: true }),
+          createMockPlugin({ id: 'p2@m', isInstalled: true, isEnabled: true }),
+        ],
         selectedIndex: 1,
       }
       const result = appReducer(state, {
@@ -212,7 +215,10 @@ describe('appReducer', () => {
     it('MOVE_SELECTION down increases index', () => {
       const state: AppState = {
         ...initialState,
-        plugins: [createMockPlugin(), createMockPlugin()],
+        plugins: [
+          createMockPlugin({ id: 'p1@m', isInstalled: true, isEnabled: true }),
+          createMockPlugin({ id: 'p2@m', isInstalled: true, isEnabled: true }),
+        ],
         selectedIndex: 0,
       }
       const result = appReducer(state, {
@@ -226,7 +232,9 @@ describe('appReducer', () => {
     it('MOVE_SELECTION up at 0 stays at 0', () => {
       const state: AppState = {
         ...initialState,
-        plugins: [createMockPlugin()],
+        plugins: [
+          createMockPlugin({ id: 'p1@m', isInstalled: true, isEnabled: true }),
+        ],
         selectedIndex: 0,
       }
       const result = appReducer(state, {
@@ -240,7 +248,10 @@ describe('appReducer', () => {
     it('MOVE_SELECTION down at max stays at max', () => {
       const state: AppState = {
         ...initialState,
-        plugins: [createMockPlugin(), createMockPlugin()],
+        plugins: [
+          createMockPlugin({ id: 'p1@m', isInstalled: true, isEnabled: true }),
+          createMockPlugin({ id: 'p2@m', isInstalled: true, isEnabled: true }),
+        ],
         selectedIndex: 1,
       }
       const result = appReducer(state, {
@@ -422,6 +433,23 @@ describe('appReducer', () => {
 })
 
 describe('getItemsForTab', () => {
+  it('returns enabled plugins for enabled tab', () => {
+    const plugins = [
+      createMockPlugin({ id: 'p1@m', isInstalled: true, isEnabled: true }),
+      createMockPlugin({ id: 'p2@m', isInstalled: true, isEnabled: false }),
+      createMockPlugin({ id: 'p3@m', isInstalled: false, isEnabled: false }),
+      createMockPlugin({ id: 'p4@m', isInstalled: true, isEnabled: true }),
+    ]
+    const state: AppState = {
+      ...initialState,
+      activeTab: 'enabled',
+      plugins,
+    }
+
+    const result = getItemsForTab(state)
+    expect(result).toHaveLength(2) // Only p1 and p4 are installed AND enabled
+  })
+
   it('returns filtered plugins for discover tab', () => {
     const plugins = [
       createMockPlugin({ id: 'p1@m', name: 'alpha' }),

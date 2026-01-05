@@ -6,7 +6,7 @@
 
 import { Box, Text } from 'ink'
 
-type Tab = 'discover' | 'installed' | 'marketplaces' | 'errors'
+type Tab = 'enabled' | 'installed' | 'discover' | 'marketplaces' | 'errors'
 
 interface TabBarProps {
   activeTab: Tab
@@ -14,8 +14,9 @@ interface TabBarProps {
 }
 
 const TABS: Array<{ id: Tab; label: string }> = [
-  { id: 'discover', label: 'Discover' },
+  { id: 'enabled', label: 'Enabled' },
   { id: 'installed', label: 'Installed' },
+  { id: 'discover', label: 'Discover' },
   { id: 'marketplaces', label: 'Marketplaces' },
   { id: 'errors', label: 'Errors' },
 ]
