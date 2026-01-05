@@ -14,5 +14,6 @@
     "declaration": true,
     "resolveJsonModule": true
   },
-  "include": ["source"]
+  "include": ["source"],
+  "exclude": ["source/**/*.test.ts", "source/**/*.test.tsx"]
 }

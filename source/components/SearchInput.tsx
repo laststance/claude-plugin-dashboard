@@ -27,7 +27,7 @@ export default function SearchInput({
       borderColor={isActive ? 'cyan' : 'gray'}
       paddingX={1}
     >
-      <Text color={isActive ? 'cyan' : 'gray'}>Q </Text>
+      <Text color={isActive ? 'cyan' : 'gray'}>🔍 </Text>
       {query ? <Text>{query}</Text> : <Text dimColor>{placeholder}</Text>}
       {isActive && <Text color="cyan">▌</Text>}
     </Box>

@@ -95,8 +95,8 @@ describe('DiscoverTab', () => {
     it('should render SearchInput component', () => {
       const { lastFrame } = render(<DiscoverTab {...defaultProps} />)
 
-      // SearchInput shows "Q" prefix
-      expect(lastFrame()).toContain('Q')
+      // SearchInput shows "🔍" prefix
+      expect(lastFrame()).toContain('🔍')
     })
 
     it('should show placeholder when search query is empty', () => {

@@ -10,10 +10,10 @@ import SearchInput from './SearchInput.js'
 
 describe('SearchInput', () => {
   describe('prefix rendering', () => {
-    it('should always show "Q " prefix', () => {
+    it('should always show "🔍 " prefix', () => {
       const { lastFrame } = render(<SearchInput query="" />)
 
-      expect(lastFrame()).toContain('Q ')
+      expect(lastFrame()).toContain('🔍 ')
     })
   })
 
@@ -70,8 +70,8 @@ describe('SearchInput', () => {
 
       // Single border uses characters like |, -, +, etc.
       // Round border uses characters like (, ), etc.
-      // Check for the Q prefix to ensure component rendered
-      expect(frame).toContain('Q ')
+      // Check for the 🔍 prefix to ensure component rendered
+      expect(frame).toContain('🔍 ')
     })
 
     it('should use round border style when active', () => {
