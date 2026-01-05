@@ -426,9 +426,53 @@ export default function App() {
       return
     }
 
-    // Toggle plugin (Space or Enter)
+    // Enter key: Install (non-installed) or Toggle (installed)
     if (
-      (input === ' ' || key.return) &&
+      key.return &&
+      (state.activeTab === 'enabled' ||
+        state.activeTab === 'installed' ||
+        state.activeTab === 'discover')
+    ) {
+      const items =
+        state.activeTab === 'enabled'
+          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
+          : state.activeTab === 'installed'
+            ? state.plugins.filter((p) => p.isInstalled)
+            : getFilteredPlugins(state)
+
+      const selectedPlugin = items[state.selectedIndex]
+      if (selectedPlugin) {
+        if (!selectedPlugin.isInstalled) {
+          // Install non-installed plugin
+          handleInstall(selectedPlugin.id)
+        } else {
+          // Toggle installed plugin
+          try {
+            const newState = togglePlugin(selectedPlugin.id)
+            dispatch({
+              type: 'TOGGLE_PLUGIN_ENABLED',
+              payload: selectedPlugin.id,
+            })
+            dispatch({
+              type: 'SET_MESSAGE',
+              payload: newState
+                ? `✅ ${selectedPlugin.name} enabled`
+                : `❌ ${selectedPlugin.name} disabled`,
+            })
+          } catch (error) {
+            dispatch({
+              type: 'SET_MESSAGE',
+              payload: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            })
+          }
+        }
+      }
+      return
+    }
+
+    // Toggle plugin (Space only)
+    if (
+      input === ' ' &&
       (state.activeTab === 'enabled' ||
         state.activeTab === 'installed' ||
         state.activeTab === 'discover')

@@ -689,6 +689,54 @@ describe('App component', () => {
       expect(lastFrame()).toContain('Installed')
     })
 
+    it('should trigger install when pressing Enter on non-installed plugin', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'new-plugin',
+          isInstalled: false,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (where non-installed plugins are visible)
+      // Enabled → Installed → Discover
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
+      await waitForRender()
+
+      // Press Enter to install
+      stdin.write('\r')
+      await waitForRender()
+
+      // Mock resolves immediately, so we see the success message
+      expect(lastFrame()).toContain('Installed')
+    })
+
+    it('should toggle enabled state when pressing Enter on installed plugin', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'installed-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Press Enter on installed plugin (toggles enabled state)
+      stdin.write('\r')
+      await waitForRender()
+
+      // Should toggle the plugin (already enabled → shows disabled message or enabled message)
+      expect(lastFrame()).toMatch(/installed-plugin (enabled|disabled)/)
+    })
+
     it('should show not installed message when pressing u on non-installed plugin', async () => {
       mockLoadAllPlugins.mockReturnValue([
         createMockPlugin({

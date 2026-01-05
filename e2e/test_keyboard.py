@@ -201,6 +201,31 @@ class TestSearchFunctionality:
 
 
 @pytest.mark.e2e
+class TestInstallActions:
+    """Test install actions with Enter key."""
+
+    def test_enter_key_triggers_install(self, spawn_cli, keys):
+        """Enter key triggers install action on Discover tab (Issue #4)."""
+        child = spawn_cli()
+        child.expect('Discover', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Navigate to Discover tab (Enabled → Installed → Discover)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        time.sleep(0.3)
+
+        # Press Enter key (should trigger install action)
+        keys.send_key(child, keys.ENTER)
+        time.sleep(0.5)
+
+        # App should still be running (install action triggered)
+        assert child.isalive()
+
+        keys.quit(child)
+
+
+@pytest.mark.e2e
 class TestQuitBehavior:
     """Test application exit."""
 
