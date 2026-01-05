@@ -106,6 +106,7 @@ describe('initialState', () => {
     expect(initialState.operation).toBe('idle')
     expect(initialState.operationPluginId).toBe(null)
     expect(initialState.confirmUninstall).toBe(false)
+    expect(initialState.showHelp).toBe(false)
   })
 })
 
@@ -420,6 +421,20 @@ describe('appReducer', () => {
 
       expect(result.confirmUninstall).toBe(false)
       expect(result.operationPluginId).toBe(null)
+    })
+  })
+
+  describe('help overlay', () => {
+    it('TOGGLE_HELP shows help when hidden', () => {
+      const state: AppState = { ...initialState, showHelp: false }
+      const result = appReducer(state, { type: 'TOGGLE_HELP' })
+      expect(result.showHelp).toBe(true)
+    })
+
+    it('TOGGLE_HELP hides help when visible', () => {
+      const state: AppState = { ...initialState, showHelp: true }
+      const result = appReducer(state, { type: 'TOGGLE_HELP' })
+      expect(result.showHelp).toBe(false)
     })
   })
 

@@ -1013,4 +1013,116 @@ describe('App component', () => {
       }
     })
   })
+
+  describe('help overlay', () => {
+    it('should show help overlay when pressing h key', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Press h to show help
+      stdin.write('h')
+      await waitForRender()
+
+      expect(lastFrame()).toContain('Help')
+      expect(lastFrame()).toContain('Navigation')
+    })
+
+    it('should hide help overlay when pressing h again', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Show help
+      stdin.write('h')
+      await waitForRender()
+      expect(lastFrame()).toContain('Help')
+
+      // Hide help
+      stdin.write('h')
+      await waitForRender()
+      expect(lastFrame()).not.toContain('Toggle this help')
+    })
+
+    it('should hide help overlay when pressing Escape', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Show help
+      stdin.write('h')
+      await waitForRender()
+      expect(lastFrame()).toContain('Help')
+
+      // Hide with Escape
+      stdin.write('\x1B')
+      await waitForRender()
+      expect(lastFrame()).not.toContain('Toggle this help')
+    })
+
+    it('should block other input while help is visible', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Show help
+      stdin.write('h')
+      await waitForRender()
+
+      // Try to navigate (should not work)
+      stdin.write('\x1B[C')
+      await waitForRender()
+
+      // Help should still be visible
+      expect(lastFrame()).toContain('Help')
+    })
+
+    it('should display h help hint in header', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame } = render(<App />)
+      await waitForRender()
+
+      expect(lastFrame()).toContain('help')
+    })
+  })
 })

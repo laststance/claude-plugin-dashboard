@@ -24,6 +24,7 @@ import {
   uninstallPlugin,
 } from './services/pluginActionsService.js'
 import ConfirmDialog from './components/ConfirmDialog.js'
+import HelpOverlay from './components/HelpOverlay.js'
 import type { AppState, Action, Plugin } from './types/index.js'
 
 /**
@@ -44,6 +45,7 @@ export const initialState: AppState = {
   operation: 'idle',
   operationPluginId: null,
   confirmUninstall: false,
+  showHelp: false,
 }
 
 /**
@@ -215,6 +217,12 @@ export function appReducer(state: AppState, action: Action): AppState {
         operationPluginId: null,
       }
 
+    case 'TOGGLE_HELP':
+      return {
+        ...state,
+        showHelp: !state.showHelp,
+      }
+
     default:
       return state
   }
@@ -337,6 +345,20 @@ export default function App() {
   useInput((input, key) => {
     // Block all input during operations
     if (state.operation !== 'idle') {
+      return
+    }
+
+    // Handle help overlay
+    if (state.showHelp) {
+      if (input === 'h' || key.escape) {
+        dispatch({ type: 'TOGGLE_HELP' })
+      }
+      return
+    }
+
+    // Toggle help (h key)
+    if (input === 'h') {
+      dispatch({ type: 'TOGGLE_HELP' })
       return
     }
 
@@ -630,6 +652,12 @@ export default function App() {
           ⚡ Claude Code Plugin Dashboard
         </Text>
         <Box flexGrow={1} />
+        <Text dimColor>
+          <Text color="white" bold>
+            h
+          </Text>{' '}
+          help
+        </Text>
         <Text dimColor>v0.1.0</Text>
       </Box>
 
@@ -682,6 +710,9 @@ export default function App() {
       {state.confirmUninstall && state.operationPluginId && (
         <ConfirmDialog message={`Uninstall ${state.operationPluginId}?`} />
       )}
+
+      {/* Help Overlay */}
+      <HelpOverlay isVisible={state.showHelp} />
 
       {/* Status message */}
       {state.message && (

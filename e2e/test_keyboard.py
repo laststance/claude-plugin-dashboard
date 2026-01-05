@@ -226,6 +226,50 @@ class TestInstallActions:
 
 
 @pytest.mark.e2e
+class TestHelpOverlay:
+    """Test help overlay functionality."""
+
+    def test_help_toggle_with_h_key(self, spawn_cli, keys):
+        """Pressing h toggles the help overlay (Issue #8)."""
+        child = spawn_cli()
+        child.expect('Discover', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Open help
+        keys.send_key(child, 'h')
+        time.sleep(0.5)
+
+        # Help should be visible
+        # App should still be running
+        assert child.isalive()
+
+        # Close help
+        keys.send_key(child, 'h')
+        time.sleep(0.3)
+
+        keys.quit(child)
+
+    def test_help_close_with_escape(self, spawn_cli, keys):
+        """Pressing Escape closes the help overlay."""
+        child = spawn_cli()
+        child.expect('Discover', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Open help
+        keys.send_key(child, 'h')
+        time.sleep(0.3)
+
+        # Close with Escape
+        keys.send_key(child, keys.ESC)
+        time.sleep(0.3)
+
+        # Should still be running
+        assert child.isalive()
+
+        keys.quit(child)
+
+
+@pytest.mark.e2e
 class TestQuitBehavior:
     """Test application exit."""
 

@@ -196,6 +196,8 @@ export interface AppState {
   operationPluginId: string | null
   /** Whether confirmation dialog is showing */
   confirmUninstall: boolean
+  /** Whether help overlay is showing */
+  showHelp: boolean
 }
 
 /**
@@ -227,3 +229,4 @@ export type Action =
   | { type: 'END_OPERATION' }
   | { type: 'SHOW_CONFIRM_UNINSTALL'; payload: string }
   | { type: 'HIDE_CONFIRM_UNINSTALL' }
+  | { type: 'TOGGLE_HELP' }
