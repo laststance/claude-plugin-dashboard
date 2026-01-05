@@ -109,26 +109,36 @@ describe('App component', () => {
       expect(lastFrame()).toContain('Discover')
     })
 
-    it('should render discover tab by default', async () => {
+    it('should render enabled tab by default', async () => {
       mockLoadAllPlugins.mockReturnValue([
-        createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'plugin-1',
+          isInstalled: true,
+          isEnabled: true,
+        }),
       ])
 
       const { lastFrame } = render(<App />)
       await waitForRender()
 
-      expect(lastFrame()).toContain('Discover plugins')
+      expect(lastFrame()).toContain('Enabled plugins')
     })
 
-    it('should display plugins', async () => {
+    it('should display enabled plugins on default tab', async () => {
       mockLoadAllPlugins.mockReturnValue([
-        createMockPlugin({ id: 'p1@m', name: 'my-plugin' }),
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'my-enabled-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
       ])
 
       const { lastFrame } = render(<App />)
       await waitForRender()
 
-      expect(lastFrame()).toContain('my-plugin')
+      expect(lastFrame()).toContain('my-enabled-plugin')
     })
 
     it('should render key hints footer', async () => {
@@ -178,8 +188,18 @@ describe('App component', () => {
 
     it('should move selection down with down arrow', async () => {
       mockLoadAllPlugins.mockReturnValue([
-        createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
-        createMockPlugin({ id: 'p2@m', name: 'plugin-2' }),
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'plugin-1',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+        createMockPlugin({
+          id: 'p2@m',
+          name: 'plugin-2',
+          isInstalled: true,
+          isEnabled: true,
+        }),
       ])
 
       const { lastFrame, stdin } = render(<App />)
@@ -197,8 +217,18 @@ describe('App component', () => {
 
     it('should move selection down with Ctrl+N', async () => {
       mockLoadAllPlugins.mockReturnValue([
-        createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
-        createMockPlugin({ id: 'p2@m', name: 'plugin-2' }),
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'plugin-1',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+        createMockPlugin({
+          id: 'p2@m',
+          name: 'plugin-2',
+          isInstalled: true,
+          isEnabled: true,
+        }),
       ])
 
       const { lastFrame, stdin } = render(<App />)
@@ -221,6 +251,12 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to discover tab (2 tabs right from enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Press / to enter search mode
       stdin.write('/')
       await waitForRender()
@@ -235,6 +271,12 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
       await waitForRender()
 
       // Enter search mode
@@ -255,6 +297,12 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
       await waitForRender()
 
       // Enter search mode
@@ -278,6 +326,12 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Enter search mode and type
       stdin.write('/')
       await waitForRender()
@@ -294,6 +348,12 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
       await waitForRender()
 
       // Enter search mode and type
@@ -319,11 +379,18 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Press s to change sort
       stdin.write('s')
       await waitForRender()
 
-      expect(lastFrame()).toBeDefined()
+      // Should still be on Discover tab with sort applied
+      expect(lastFrame()).toContain('Discover')
     })
 
     it('should toggle sort order with S key', async () => {
@@ -334,11 +401,18 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Press S to toggle order
       stdin.write('S')
       await waitForRender()
 
-      expect(lastFrame()).toBeDefined()
+      // Should still be on Discover tab with sort order toggled
+      expect(lastFrame()).toContain('Discover')
     })
   })
 
@@ -351,7 +425,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to marketplaces tab (2 tabs right)
+      // Navigate to marketplaces tab (3 tabs right from enabled)
+      // enabled → installed → discover → marketplaces
+      stdin.write('\x1B[C')
+      await waitForRender()
       stdin.write('\x1B[C')
       await waitForRender()
       stdin.write('\x1B[C')
@@ -364,7 +441,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to errors tab (3 tabs right)
+      // Navigate to errors tab (4 tabs right from enabled)
+      // enabled → installed → discover → marketplaces → errors
+      stdin.write('\x1B[C')
+      await waitForRender()
       stdin.write('\x1B[C')
       await waitForRender()
       stdin.write('\x1B[C')
@@ -379,8 +459,18 @@ describe('App component', () => {
   describe('additional keyboard navigation', () => {
     it('should move selection up with up arrow', async () => {
       mockLoadAllPlugins.mockReturnValue([
-        createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
-        createMockPlugin({ id: 'p2@m', name: 'plugin-2' }),
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'plugin-1',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+        createMockPlugin({
+          id: 'p2@m',
+          name: 'plugin-2',
+          isInstalled: true,
+          isEnabled: true,
+        }),
       ])
 
       const { lastFrame, stdin } = render(<App />)
@@ -399,8 +489,18 @@ describe('App component', () => {
 
     it('should move selection up with Ctrl+P', async () => {
       mockLoadAllPlugins.mockReturnValue([
-        createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
-        createMockPlugin({ id: 'p2@m', name: 'plugin-2' }),
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'plugin-1',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+        createMockPlugin({
+          id: 'p2@m',
+          name: 'plugin-2',
+          isInstalled: true,
+          isEnabled: true,
+        }),
       ])
 
       const { lastFrame, stdin } = render(<App />)
@@ -420,15 +520,15 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // First go right
+      // First go right (from enabled to installed)
       stdin.write('\x1B[C')
       await waitForRender()
       expect(lastFrame()).toContain('Installed plugins')
 
-      // Then go left
+      // Then go left (from installed to enabled)
       stdin.write('\x1B[D')
       await waitForRender()
-      expect(lastFrame()).toContain('Discover plugins')
+      expect(lastFrame()).toContain('Enabled plugins')
     })
 
     it('should navigate with tab key', async () => {
@@ -454,6 +554,10 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Installed tab (where isInstalled: true, isEnabled: false plugins are visible)
+      stdin.write('\t')
       await waitForRender()
 
       // Press space to toggle
@@ -490,6 +594,7 @@ describe('App component', () => {
           id: 'p1@m',
           name: 'installed-plugin',
           isInstalled: true,
+          isEnabled: true,
         }),
       ])
 
@@ -515,6 +620,13 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (where non-installed plugins are visible)
+      // Enabled → Installed → Discover
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
+      await waitForRender()
+
       // Press i to install
       stdin.write('i')
       await waitForRender()
@@ -535,6 +647,12 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to discover tab (2 tabs right from enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Press u to uninstall
       stdin.write('u')
       await waitForRender()
@@ -548,6 +666,7 @@ describe('App component', () => {
           id: 'p1@m',
           name: 'installed-plugin',
           isInstalled: true,
+          isEnabled: true,
         }),
       ])
 
@@ -567,6 +686,7 @@ describe('App component', () => {
           id: 'p1@m',
           name: 'installed-plugin',
           isInstalled: true,
+          isEnabled: true,
         }),
       ])
 
@@ -590,6 +710,7 @@ describe('App component', () => {
           id: 'p1@m',
           name: 'installed-plugin',
           isInstalled: true,
+          isEnabled: true,
         }),
       ])
 
@@ -613,6 +734,7 @@ describe('App component', () => {
           id: 'p1@m',
           name: 'installed-plugin',
           isInstalled: true,
+          isEnabled: true,
         }),
       ])
 
@@ -668,7 +790,7 @@ describe('App component', () => {
           id: 'p1@m',
           name: 'my-plugin',
           isInstalled: true,
-          isEnabled: false,
+          isEnabled: true,
         }),
       ])
 
@@ -696,6 +818,12 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
+      // Navigate to Discover tab (2 tabs right from Enabled)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
       // Enter search mode and type
       stdin.write('/')
       await waitForRender()
@@ -710,7 +838,8 @@ describe('App component', () => {
       stdin.write('\x1B')
       await waitForRender()
 
-      expect(lastFrame()).toBeDefined()
+      // Should still be on Discover tab
+      expect(lastFrame()).toContain('Discover')
     })
   })
 })

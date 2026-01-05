@@ -169,7 +169,7 @@ export interface Settings {
  */
 export interface AppState {
   /** Current active tab */
-  activeTab: 'discover' | 'installed' | 'marketplaces' | 'errors'
+  activeTab: 'enabled' | 'installed' | 'discover' | 'marketplaces' | 'errors'
   /** All plugins from all marketplaces */
   plugins: Plugin[]
   /** All marketplaces */
