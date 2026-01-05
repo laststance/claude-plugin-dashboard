@@ -80,6 +80,30 @@ class TestTabNavigation:
 
         keys.quit(child)
 
+    def test_marketplaces_tab_no_header_duplication(self, spawn_cli, keys):
+        """Header should appear only once on Marketplaces tab (Issue #10)."""
+        child = spawn_cli()
+        child.expect('Discover', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Navigate to Marketplaces tab (Enabled → Installed → Discover → Marketplaces)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        time.sleep(0.3)
+
+        # Read current buffer
+        child.read_nonblocking(size=10000, timeout=0.5)
+        output = child.before.decode('utf-8') if isinstance(child.before, bytes) else str(child.before)
+
+        # Count header occurrences
+        header_count = output.count('Plugin Dashboard')
+
+        # Header should appear exactly once
+        assert header_count <= 1, f"Header appeared {header_count} times, expected 1"
+
+        keys.quit(child)
+
     def test_errors_tab(self, spawn_cli, keys):
         """Can navigate to Errors tab."""
         child = spawn_cli()

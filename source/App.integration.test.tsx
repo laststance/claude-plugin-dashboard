@@ -842,4 +842,73 @@ describe('App component', () => {
       expect(lastFrame()).toContain('Discover')
     })
   })
+
+  describe('header rendering', () => {
+    it('should render main header only once on Marketplaces tab', async () => {
+      mockLoadMarketplaces.mockReturnValue([
+        createMockMarketplace({ id: 'm1', name: 'Test Marketplace' }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to marketplaces tab (3 tabs right from enabled)
+      // enabled → installed → discover → marketplaces
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
+      const frame = lastFrame() ?? ''
+
+      // Count occurrences of the main header
+      const headerMatches = frame.match(/Plugin Dashboard/g) ?? []
+      expect(headerMatches.length).toBe(1)
+
+      // Also verify we're on the Marketplaces tab
+      expect(frame).toContain('Marketplaces')
+    })
+
+    it('should render main header only once on each tab', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+      mockLoadMarketplaces.mockReturnValue([
+        createMockMarketplace({ id: 'm1', name: 'Test Marketplace' }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Test each tab
+      const tabs = [
+        'Enabled',
+        'Installed',
+        'Discover',
+        'Marketplaces',
+        'Errors',
+      ]
+
+      for (let i = 0; i < tabs.length; i++) {
+        const frame = lastFrame() ?? ''
+        const headerMatches = frame.match(/Plugin Dashboard/g) ?? []
+
+        // Header should appear exactly once on every tab
+        expect(headerMatches.length).toBe(1)
+
+        // Navigate to next tab (unless we're on the last one)
+        if (i < tabs.length - 1) {
+          stdin.write('\x1B[C')
+          await waitForRender()
+        }
+      }
+    })
+  })
 })
