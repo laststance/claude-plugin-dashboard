@@ -41,7 +41,7 @@ export default function TabBar({ activeTab, isFocused = false }: TabBarProps) {
             {isActive ? (
               <Text
                 bold
-                color={isFocused ? 'cyan' : 'cyan'}
+                color="cyan"
                 backgroundColor={isFocused ? '#1a3a4a' : '#333333'}
               >
                 {isFocused ? `[${tab.label}]` : ` ${tab.label} `}

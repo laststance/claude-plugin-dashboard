@@ -97,8 +97,8 @@ describe('App component', () => {
       const { lastFrame } = render(<App />)
       await waitForRender()
 
-      // Version is dynamically loaded from package.json
-      expect(lastFrame()).toContain('v0.1.1')
+      // Version is dynamically loaded from package.json - verify format
+      expect(lastFrame()).toMatch(/v\d+\.\d+\.\d+/)
     })
   })
 

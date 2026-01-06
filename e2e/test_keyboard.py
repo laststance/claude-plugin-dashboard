@@ -362,7 +362,7 @@ class TestSearchFunctionality:
     def test_exit_search_with_down_arrow(self, spawn_cli, keys):
         """Down arrow exits search mode and returns to list (Issue #3)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Navigate to Discover tab (Enabled → Installed → Discover)
