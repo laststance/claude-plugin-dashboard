@@ -16,6 +16,7 @@ import {
   loadAllPlugins,
   loadMarketplaces,
   searchPlugins,
+  searchMarketplaces,
   sortPlugins,
 } from './services/pluginService.js'
 import { togglePlugin } from './services/settingsService.js'
@@ -442,8 +443,14 @@ export default function App() {
       return
     }
 
-    // Enter search mode
-    if (input === '/' && state.activeTab === 'discover') {
+    // Enter search mode (on supported tabs)
+    const searchEnabledTabs = [
+      'enabled',
+      'installed',
+      'discover',
+      'marketplaces',
+    ]
+    if (input === '/' && searchEnabledTabs.includes(state.activeTab)) {
       setIsSearchMode(true)
       return
     }
@@ -639,10 +646,25 @@ export default function App() {
 
   // Get filtered data for current tab
   const filteredPlugins = getFilteredPlugins(state)
-  const enabledPlugins = state.plugins.filter(
+
+  // Apply search filter to enabled plugins
+  const enabledPluginsBase = state.plugins.filter(
     (p) => p.isInstalled && p.isEnabled,
   )
-  const installedPlugins = state.plugins.filter((p) => p.isInstalled)
+  const enabledPlugins = state.searchQuery
+    ? searchPlugins(state.searchQuery, enabledPluginsBase)
+    : enabledPluginsBase
+
+  // Apply search filter to installed plugins
+  const installedPluginsBase = state.plugins.filter((p) => p.isInstalled)
+  const installedPlugins = state.searchQuery
+    ? searchPlugins(state.searchQuery, installedPluginsBase)
+    : installedPluginsBase
+
+  // Apply search filter to marketplaces
+  const filteredMarketplaces = state.searchQuery
+    ? searchMarketplaces(state.searchQuery, state.marketplaces)
+    : state.marketplaces
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -670,6 +692,8 @@ export default function App() {
           <EnabledTab
             plugins={enabledPlugins}
             selectedIndex={state.selectedIndex}
+            searchQuery={state.searchQuery}
+            isSearchMode={isSearchMode}
           />
         )}
 
@@ -677,6 +701,8 @@ export default function App() {
           <InstalledTab
             plugins={installedPlugins}
             selectedIndex={state.selectedIndex}
+            searchQuery={state.searchQuery}
+            isSearchMode={isSearchMode}
           />
         )}
 
@@ -693,8 +719,10 @@ export default function App() {
 
         {state.activeTab === 'marketplaces' && (
           <MarketplacesTab
-            marketplaces={state.marketplaces}
+            marketplaces={filteredMarketplaces}
             selectedIndex={state.selectedIndex}
+            searchQuery={state.searchQuery}
+            isSearchMode={isSearchMode}
           />
         )}
 
@@ -729,13 +757,14 @@ export default function App() {
             return [{ key: 'Enter', action: 'exit search' }]
           }
 
-          // Plugin tabs hints
+          // Plugin tabs hints (enabled, installed, discover)
           if (
             state.activeTab === 'enabled' ||
             state.activeTab === 'installed' ||
             state.activeTab === 'discover'
           ) {
             const hints = [
+              { key: '/', action: 'search' },
               { key: 'i', action: 'install' },
               { key: 'u', action: 'uninstall' },
             ]
@@ -765,6 +794,11 @@ export default function App() {
             }
 
             return hints
+          }
+
+          // Marketplaces tab hints
+          if (state.activeTab === 'marketplaces') {
+            return [{ key: '/', action: 'search' }]
           }
 
           return undefined

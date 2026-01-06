@@ -6,21 +6,30 @@
 import { Box, Text } from 'ink'
 import MarketplaceList from '../components/MarketplaceList.js'
 import MarketplaceDetail from '../components/MarketplaceDetail.js'
+import SearchInput from '../components/SearchInput.js'
 import type { Marketplace } from '../types/index.js'
 
 interface MarketplacesTabProps {
   marketplaces: Marketplace[]
   selectedIndex: number
+  searchQuery?: string
+  isSearchMode?: boolean
 }
 
 /**
  * Marketplaces tab - manage plugin sources
+ * @param marketplaces - Filtered marketplaces (search already applied by parent)
+ * @param selectedIndex - Currently selected item index
+ * @param searchQuery - Current search query string
+ * @param isSearchMode - Whether search input is active
  * @example
- * <MarketplacesTab marketplaces={marketplaces} selectedIndex={0} />
+ * <MarketplacesTab marketplaces={marketplaces} selectedIndex={0} searchQuery="" isSearchMode={false} />
  */
 export default function MarketplacesTab({
   marketplaces,
   selectedIndex,
+  searchQuery = '',
+  isSearchMode = false,
 }: MarketplacesTabProps) {
   const selectedMarketplace = marketplaces[selectedIndex] ?? null
 
@@ -45,16 +54,30 @@ export default function MarketplacesTab({
         <Text color="gray">{totalPlugins} total plugins</Text>
       </Box>
 
+      {/* Search bar */}
+      <Box marginBottom={1}>
+        <SearchInput
+          query={searchQuery}
+          isActive={isSearchMode}
+          placeholder="Type to search marketplaces..."
+        />
+      </Box>
+
       {/* Two-column layout */}
       <Box flexGrow={1}>
         {/* Left panel: Marketplace list */}
         <Box width="50%" flexDirection="column">
           {marketplaces.length === 0 ? (
             <Box padding={1} flexDirection="column">
-              <Text color="gray">No marketplaces found</Text>
+              <Text color="gray">
+                {searchQuery
+                  ? 'No matching marketplaces'
+                  : 'No marketplaces found'}
+              </Text>
               <Text dimColor>
-                Add marketplaces with{' '}
-                <Text color="white">/plugin add-marketplace</Text>
+                {searchQuery
+                  ? 'Try a different search term'
+                  : 'Add marketplaces with /plugin add-marketplace'}
               </Text>
             </Box>
           ) : (

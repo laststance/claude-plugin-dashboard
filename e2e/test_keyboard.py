@@ -19,46 +19,49 @@ class TestTabNavigation:
     def test_tab_switch_with_tab_key(self, spawn_cli, keys):
         """Tab key switches to next tab."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Tab to next tab
         keys.send_key(child, keys.TAB)
+        child.expect('Installed', timeout=2)
 
         keys.quit(child)
 
     def test_tab_switch_with_right_arrow(self, spawn_cli, keys):
         """Right arrow key switches to next tab."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         keys.send_key(child, keys.RIGHT)
+        child.expect('Installed', timeout=2)
 
         keys.quit(child)
 
     def test_tab_switch_with_left_arrow(self, spawn_cli, keys):
         """Left arrow key switches to previous tab."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Go right first
-        keys.send_key(child, keys.RIGHT)
+        keys.send_key(child, keys.RIGHT, delay=0.2)
 
-        # Then go left back to Discover
+        # Then go left back to Enabled
         keys.send_key(child, keys.LEFT)
+        child.expect('Enabled', timeout=2)
 
         keys.quit(child)
 
     def test_cycle_through_all_tabs(self, spawn_cli, keys):
-        """Can cycle through all four tabs."""
+        """Can cycle through all five tabs."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
-        # Cycle through all tabs
-        for _ in range(4):
+        # Cycle through all 5 tabs (Enabled → Installed → Discover → Marketplaces → Errors → Enabled)
+        for _ in range(5):
             keys.send_key(child, keys.TAB, delay=0.2)
 
         keys.quit(child)
@@ -66,18 +69,19 @@ class TestTabNavigation:
     def test_tab_switch_with_ctrl_f(self, spawn_cli, keys):
         """Ctrl+F switches to next tab (Emacs-style)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Ctrl+F to next tab
         keys.send_key(child, keys.CTRL_F)
+        child.expect('Installed', timeout=2)
 
         keys.quit(child)
 
     def test_tab_switch_with_ctrl_b(self, spawn_cli, keys):
         """Ctrl+B switches to previous tab (Emacs-style)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Go forward first
@@ -85,6 +89,7 @@ class TestTabNavigation:
 
         # Then go back with Ctrl+B
         keys.send_key(child, keys.CTRL_B)
+        child.expect('Enabled', timeout=2)
 
         keys.quit(child)
 
@@ -96,7 +101,7 @@ class TestListNavigation:
     def test_down_arrow_navigation(self, spawn_cli, keys):
         """Down arrow moves selection down."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Navigate down
@@ -107,7 +112,7 @@ class TestListNavigation:
     def test_up_arrow_navigation(self, spawn_cli, keys):
         """Up arrow moves selection up."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Go down first, then up
@@ -119,7 +124,7 @@ class TestListNavigation:
     def test_ctrl_n_navigation(self, spawn_cli, keys):
         """Ctrl+N moves selection down (Emacs-style)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Ctrl+N should work like down arrow
@@ -130,7 +135,7 @@ class TestListNavigation:
     def test_ctrl_p_navigation(self, spawn_cli, keys):
         """Ctrl+P moves selection up (Emacs-style)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Go down first, then Ctrl+P
@@ -147,7 +152,7 @@ class TestSearchFunctionality:
     def test_search_mode_activation(self, spawn_cli, keys):
         """Pressing / activates search mode."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Activate search with /
@@ -161,7 +166,7 @@ class TestSearchFunctionality:
     def test_search_input(self, spawn_cli, keys):
         """Can type search query."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Activate search
@@ -199,6 +204,103 @@ class TestSearchFunctionality:
 
         keys.quit(child)
 
+    def test_search_on_enabled_tab(self, spawn_cli, keys):
+        """Search mode works on Enabled tab (Issue #11)."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
+        time.sleep(0.5)  # Wait for init
+
+        # Activate search with /
+        keys.send_key(child, '/')
+        time.sleep(0.3)
+
+        # Type search query
+        for char in 'test':
+            keys.send_key(child, char, delay=0.1)
+
+        # Exit search with Esc
+        keys.send_key(child, keys.ESC)
+        time.sleep(0.3)
+
+        # Should still be on Enabled tab
+        child.expect('Enabled', timeout=2)
+
+        keys.quit(child)
+
+    def test_search_on_installed_tab(self, spawn_cli, keys):
+        """Search mode works on Installed tab (Issue #11)."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Navigate to Installed tab
+        keys.send_key(child, keys.TAB, delay=0.3)
+        child.expect('Installed', timeout=2)
+
+        # Activate search with /
+        keys.send_key(child, '/')
+        time.sleep(0.3)
+
+        # Type search query
+        for char in 'mcp':
+            keys.send_key(child, char, delay=0.1)
+
+        # Exit search with Esc
+        keys.send_key(child, keys.ESC)
+        time.sleep(0.3)
+
+        keys.quit(child)
+
+    def test_search_on_marketplaces_tab(self, spawn_cli, keys):
+        """Search mode works on Marketplaces tab (Issue #11)."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Navigate to Marketplaces tab (Enabled → Installed → Discover → Marketplaces)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        keys.send_key(child, keys.TAB, delay=0.2)
+        time.sleep(0.3)
+        child.expect('Marketplaces', timeout=2)
+
+        # Activate search with /
+        keys.send_key(child, '/')
+        time.sleep(0.3)
+
+        # Type search query
+        for char in 'official':
+            keys.send_key(child, char, delay=0.1)
+
+        # Exit search with Esc
+        keys.send_key(child, keys.ESC)
+        time.sleep(0.3)
+
+        keys.quit(child)
+
+    def test_search_not_available_on_errors_tab(self, spawn_cli, keys):
+        """Search mode should NOT activate on Errors tab (Issue #11)."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)  # Wait for init
+
+        # Navigate to Errors tab (Enabled → Installed → Discover → Marketplaces → Errors)
+        for _ in range(4):
+            keys.send_key(child, keys.TAB, delay=0.2)
+        time.sleep(0.5)
+
+        # Verify we're on Errors tab
+        child.expect('Errors', timeout=3)
+
+        # Try to activate search with / (should have no effect on Errors tab)
+        keys.send_key(child, '/')
+        time.sleep(0.3)
+
+        # App should still be running (/ does nothing on Errors tab)
+        assert child.isalive()
+
+        keys.quit(child)
+
 
 @pytest.mark.e2e
 class TestInstallActions:
@@ -207,7 +309,7 @@ class TestInstallActions:
     def test_enter_key_triggers_install(self, spawn_cli, keys):
         """Enter key triggers install action on Discover tab (Issue #4)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Navigate to Discover tab (Enabled → Installed → Discover)
@@ -232,7 +334,7 @@ class TestHelpOverlay:
     def test_help_toggle_with_h_key(self, spawn_cli, keys):
         """Pressing h toggles the help overlay (Issue #8)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Open help
@@ -252,7 +354,7 @@ class TestHelpOverlay:
     def test_help_close_with_escape(self, spawn_cli, keys):
         """Pressing Escape closes the help overlay."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Open help
@@ -276,7 +378,7 @@ class TestQuitBehavior:
     def test_quit_with_q(self, spawn_cli, keys):
         """Pressing q exits the application."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Quit the app

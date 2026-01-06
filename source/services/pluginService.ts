@@ -221,6 +221,30 @@ export function sortPlugins(
 }
 
 /**
+ * Search marketplaces by query
+ * Filters marketplaces by name, id, and source URL/repo
+ * @param query - Search query
+ * @param marketplaces - Marketplaces to search
+ * @returns Filtered marketplaces matching the query
+ * @example
+ * searchMarketplaces('official', marketplaces) // => marketplaces with 'official' in name/id
+ */
+export function searchMarketplaces(
+  query: string,
+  marketplaces: Marketplace[],
+): Marketplace[] {
+  const lowerQuery = query.toLowerCase()
+
+  return marketplaces.filter(
+    (m) =>
+      m.name.toLowerCase().includes(lowerQuery) ||
+      m.id.toLowerCase().includes(lowerQuery) ||
+      m.source.url?.toLowerCase().includes(lowerQuery) ||
+      m.source.repo?.toLowerCase().includes(lowerQuery),
+  )
+}
+
+/**
  * Get plugin statistics
  * @returns Object with various plugin counts
  */

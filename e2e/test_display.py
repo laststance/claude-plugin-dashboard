@@ -17,15 +17,20 @@ class TestDashboardDisplay:
     """Test that the dashboard renders correctly."""
 
     def test_dashboard_launches(self, spawn_cli, keys):
-        """Dashboard should launch and show Discover tab."""
+        """Dashboard should launch and show Enabled tab (default)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)
         keys.quit(child)
 
     def test_shows_plugin_list(self, spawn_cli, keys):
         """Dashboard should show plugin list with install counts."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)
+
+        # Navigate to Discover tab for plugin list with counts
+        keys.send_key(child, keys.TAB, delay=0.2)
+        keys.send_key(child, keys.TAB, delay=0.2)
 
         # Should display install count pattern (e.g., "55.2K installs")
         index = child.expect([
@@ -40,7 +45,12 @@ class TestDashboardDisplay:
     def test_shows_official_plugins(self, spawn_cli, keys):
         """Dashboard should show claude-plugins-official plugins."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)
+
+        # Navigate to Discover tab for official plugins
+        keys.send_key(child, keys.TAB, delay=0.2)
+        keys.send_key(child, keys.TAB, delay=0.2)
 
         # Look for official marketplace
         index = child.expect([
@@ -62,28 +72,32 @@ class TestTabNavigation:
     def test_installed_tab(self, spawn_cli, keys):
         """Can navigate to Installed tab."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         keys.send_key(child, keys.TAB)
+        child.expect('Installed', timeout=2)
 
         keys.quit(child)
 
     def test_marketplaces_tab(self, spawn_cli, keys):
         """Can navigate to Marketplaces tab."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
+        # Enabled → Installed → Discover → Marketplaces
+        keys.send_key(child, keys.TAB, delay=0.2)
         keys.send_key(child, keys.TAB, delay=0.2)
         keys.send_key(child, keys.TAB)
+        child.expect('Marketplaces', timeout=2)
 
         keys.quit(child)
 
     def test_marketplaces_tab_no_header_duplication(self, spawn_cli, keys):
         """Header should appear only once on Marketplaces tab (Issue #10)."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
         # Navigate to Marketplaces tab (Enabled → Installed → Discover → Marketplaces)
@@ -111,12 +125,15 @@ class TestTabNavigation:
     def test_errors_tab(self, spawn_cli, keys):
         """Can navigate to Errors tab."""
         child = spawn_cli()
-        child.expect('Discover', timeout=10)
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
+        # Enabled → Installed → Discover → Marketplaces → Errors
+        keys.send_key(child, keys.TAB, delay=0.2)
         keys.send_key(child, keys.TAB, delay=0.2)
         keys.send_key(child, keys.TAB, delay=0.2)
         keys.send_key(child, keys.TAB)
+        child.expect('Errors', timeout=2)
 
         keys.quit(child)
 

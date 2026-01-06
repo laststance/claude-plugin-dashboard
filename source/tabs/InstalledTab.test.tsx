@@ -1,6 +1,9 @@
 /**
  * Integration tests for InstalledTab component
  * Uses ink-testing-library to verify component rendering
+ *
+ * Note: InstalledTab receives pre-filtered plugins from parent.
+ * Filtering logic is tested in App.integration.test.tsx
  */
 
 import React from 'react'
@@ -10,11 +13,11 @@ import InstalledTab from './InstalledTab.js'
 import type { Plugin } from '../types/index.js'
 
 /**
- * Create a mock plugin for testing
+ * Create a mock installed plugin for testing
  * @param overrides - Partial plugin properties to override defaults
- * @returns A complete Plugin object
+ * @returns A complete Plugin object (isInstalled=true)
  */
-function createMockPlugin(overrides: Partial<Plugin> = {}): Plugin {
+function createMockInstalledPlugin(overrides: Partial<Plugin> = {}): Plugin {
   return {
     id: 'test-plugin@test-marketplace',
     name: 'test-plugin',
@@ -22,7 +25,7 @@ function createMockPlugin(overrides: Partial<Plugin> = {}): Plugin {
     description: 'A test plugin for testing',
     version: '1.0.0',
     installCount: 100,
-    isInstalled: false,
+    isInstalled: true,
     isEnabled: false,
     ...overrides,
   }
@@ -32,6 +35,8 @@ describe('InstalledTab', () => {
   const defaultProps = {
     plugins: [] as Plugin[],
     selectedIndex: 0,
+    searchQuery: '',
+    isSearchMode: false,
   }
 
   describe('header rendering', () => {
@@ -49,86 +54,66 @@ describe('InstalledTab', () => {
       expect(lastFrame()).toContain('(0)')
     })
 
-    it('should show correct count with installed plugins only', () => {
+    it('should show correct count with installed plugins', () => {
       const plugins = [
-        createMockPlugin({
-          id: 'plugin-1@test',
-          name: 'plugin-1',
-          isInstalled: true,
-        }),
-        createMockPlugin({
-          id: 'plugin-2@test',
-          name: 'plugin-2',
-          isInstalled: false,
-        }),
-        createMockPlugin({
-          id: 'plugin-3@test',
-          name: 'plugin-3',
-          isInstalled: true,
-        }),
+        createMockInstalledPlugin({ id: 'plugin-1@test', name: 'plugin-1' }),
+        createMockInstalledPlugin({ id: 'plugin-2@test', name: 'plugin-2' }),
+        createMockInstalledPlugin({ id: 'plugin-3@test', name: 'plugin-3' }),
       ]
       const { lastFrame } = render(
         <InstalledTab {...defaultProps} plugins={plugins} selectedIndex={0} />,
       )
 
-      // Only 2 installed plugins, showing 1/2
-      expect(lastFrame()).toContain('1/2')
+      // 3 installed plugins, showing 1/3
+      expect(lastFrame()).toContain('1/3')
     })
   })
 
-  describe('filtering', () => {
-    it('should filter to installed plugins only', () => {
-      const plugins = [
-        createMockPlugin({
-          id: 'installed@test',
-          name: 'installed',
-          isInstalled: true,
-        }),
-        createMockPlugin({
-          id: 'not-installed@test',
-          name: 'not-installed',
-          isInstalled: false,
-        }),
-      ]
-      const { lastFrame } = render(
-        <InstalledTab {...defaultProps} plugins={plugins} />,
-      )
+  describe('search bar', () => {
+    it('should render search input', () => {
+      const { lastFrame } = render(<InstalledTab {...defaultProps} />)
 
-      expect(lastFrame()).toContain('installed')
-      expect(lastFrame()).not.toContain('not-installed')
+      expect(lastFrame()).toContain('🔍')
+      expect(lastFrame()).toContain('search installed plugins')
     })
 
-    it('should show empty state when no plugins are installed', () => {
-      const plugins = [
-        createMockPlugin({
-          id: 'plugin-1@test',
-          name: 'plugin-1',
-          isInstalled: false,
-        }),
-        createMockPlugin({
-          id: 'plugin-2@test',
-          name: 'plugin-2',
-          isInstalled: false,
-        }),
-      ]
+    it('should show search query when provided', () => {
       const { lastFrame } = render(
-        <InstalledTab {...defaultProps} plugins={plugins} />,
+        <InstalledTab {...defaultProps} searchQuery="context" />,
       )
 
-      expect(lastFrame()).toContain('No plugins installed')
+      expect(lastFrame()).toContain('context')
+    })
+
+    it('should highlight search bar when in search mode', () => {
+      const { lastFrame } = render(
+        <InstalledTab {...defaultProps} isSearchMode={true} />,
+      )
+
+      // Search mode shows cursor
+      expect(lastFrame()).toContain('▌')
+    })
+
+    it('should show "No matching plugins" when search returns empty', () => {
+      const { lastFrame } = render(
+        <InstalledTab
+          {...defaultProps}
+          plugins={[]}
+          searchQuery="nonexistent"
+        />,
+      )
+
+      expect(lastFrame()).toContain('No matching plugins')
+      expect(lastFrame()).toContain('Try a different search term')
     })
   })
 
   describe('enabled/disabled counts', () => {
     it('should show enabled count', () => {
       const plugins = [
-        createMockPlugin({ id: 'p1@test', isInstalled: true, isEnabled: true }),
-        createMockPlugin({ id: 'p2@test', isInstalled: true, isEnabled: true }),
-        createMockPlugin({
-          id: 'p3@test',
-          isInstalled: true,
-          isEnabled: false,
-        }),
+        createMockInstalledPlugin({ id: 'p1@test', isEnabled: true }),
+        createMockInstalledPlugin({ id: 'p2@test', isEnabled: true }),
+        createMockInstalledPlugin({ id: 'p3@test', isEnabled: false }),
       ]
       const { lastFrame } = render(
         <InstalledTab {...defaultProps} plugins={plugins} />,
@@ -139,17 +124,9 @@ describe('InstalledTab', () => {
 
     it('should show disabled count', () => {
       const plugins = [
-        createMockPlugin({ id: 'p1@test', isInstalled: true, isEnabled: true }),
-        createMockPlugin({
-          id: 'p2@test',
-          isInstalled: true,
-          isEnabled: false,
-        }),
-        createMockPlugin({
-          id: 'p3@test',
-          isInstalled: true,
-          isEnabled: false,
-        }),
+        createMockInstalledPlugin({ id: 'p1@test', isEnabled: true }),
+        createMockInstalledPlugin({ id: 'p2@test', isEnabled: false }),
+        createMockInstalledPlugin({ id: 'p3@test', isEnabled: false }),
       ]
       const { lastFrame } = render(
         <InstalledTab {...defaultProps} plugins={plugins} />,
@@ -160,12 +137,8 @@ describe('InstalledTab', () => {
 
     it('should show both enabled and disabled indicators', () => {
       const plugins = [
-        createMockPlugin({ id: 'p1@test', isInstalled: true, isEnabled: true }),
-        createMockPlugin({
-          id: 'p2@test',
-          isInstalled: true,
-          isEnabled: false,
-        }),
+        createMockInstalledPlugin({ id: 'p1@test', isEnabled: true }),
+        createMockInstalledPlugin({ id: 'p2@test', isEnabled: false }),
       ]
       const { lastFrame } = render(
         <InstalledTab {...defaultProps} plugins={plugins} />,
@@ -182,23 +155,6 @@ describe('InstalledTab', () => {
       )
 
       expect(lastFrame()).toContain('0 enabled')
-      expect(lastFrame()).toContain('0 disabled')
-    })
-
-    it('should not count non-installed plugins in stats', () => {
-      const plugins = [
-        createMockPlugin({ id: 'p1@test', isInstalled: true, isEnabled: true }),
-        createMockPlugin({
-          id: 'p2@test',
-          isInstalled: false,
-          isEnabled: true,
-        }), // Not installed, shouldn't count
-      ]
-      const { lastFrame } = render(
-        <InstalledTab {...defaultProps} plugins={plugins} />,
-      )
-
-      expect(lastFrame()).toContain('1 enabled')
       expect(lastFrame()).toContain('0 disabled')
     })
   })
@@ -223,11 +179,7 @@ describe('InstalledTab', () => {
 
     it('should not show empty state when plugins are installed', () => {
       const plugins = [
-        createMockPlugin({
-          id: 'p1@test',
-          name: 'my-plugin',
-          isInstalled: true,
-        }),
+        createMockInstalledPlugin({ id: 'p1@test', name: 'my-plugin' }),
       ]
       const { lastFrame } = render(
         <InstalledTab {...defaultProps} plugins={plugins} />,
@@ -241,15 +193,10 @@ describe('InstalledTab', () => {
   describe('plugin list rendering', () => {
     it('should render installed plugin names', () => {
       const plugins = [
-        createMockPlugin({
-          id: 'context7@test',
-          name: 'context7',
-          isInstalled: true,
-        }),
-        createMockPlugin({
+        createMockInstalledPlugin({ id: 'context7@test', name: 'context7' }),
+        createMockInstalledPlugin({
           id: 'code-review@test',
           name: 'code-review',
-          isInstalled: true,
         }),
       ]
       const { lastFrame } = render(
@@ -262,9 +209,9 @@ describe('InstalledTab', () => {
 
     it('should show correct selected index among installed plugins', () => {
       const plugins = [
-        createMockPlugin({ id: 'p1@test', name: 'first', isInstalled: true }),
-        createMockPlugin({ id: 'p2@test', name: 'second', isInstalled: true }),
-        createMockPlugin({ id: 'p3@test', name: 'third', isInstalled: true }),
+        createMockInstalledPlugin({ id: 'p1@test', name: 'first' }),
+        createMockInstalledPlugin({ id: 'p2@test', name: 'second' }),
+        createMockInstalledPlugin({ id: 'p3@test', name: 'third' }),
       ]
       const { lastFrame } = render(
         <InstalledTab {...defaultProps} plugins={plugins} selectedIndex={1} />,
@@ -278,11 +225,10 @@ describe('InstalledTab', () => {
   describe('plugin detail rendering', () => {
     it('should show selected installed plugin details', () => {
       const plugins = [
-        createMockPlugin({
+        createMockInstalledPlugin({
           id: 'context7@test',
           name: 'context7',
           description: 'Context7 MCP server',
-          isInstalled: true,
         }),
       ]
       const { lastFrame } = render(
@@ -295,11 +241,7 @@ describe('InstalledTab', () => {
 
     it('should handle null plugin when index is out of bounds', () => {
       const plugins = [
-        createMockPlugin({
-          id: 'p1@test',
-          name: 'only-one',
-          isInstalled: true,
-        }),
+        createMockInstalledPlugin({ id: 'p1@test', name: 'only-one' }),
       ]
       const { lastFrame } = render(
         <InstalledTab {...defaultProps} plugins={plugins} selectedIndex={5} />,
