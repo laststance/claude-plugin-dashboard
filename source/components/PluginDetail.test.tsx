@@ -381,4 +381,123 @@ describe('PluginDetail', () => {
       expect(lastFrame()).toContain('○')
     })
   })
+
+  describe('ComponentBadges integration', () => {
+    it('should show components row when plugin has components', () => {
+      const plugin = createTestPlugin({
+        components: {
+          skills: 5,
+          commands: 3,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).toContain('Components:')
+    })
+
+    it('should not show components row when plugin has no components', () => {
+      const plugin = createTestPlugin({
+        components: undefined,
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).not.toContain('Components:')
+    })
+
+    it('should display skills badge with count', () => {
+      const plugin = createTestPlugin({
+        components: {
+          skills: 5,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).toContain('[S:5]')
+    })
+
+    it('should display commands badge with count', () => {
+      const plugin = createTestPlugin({
+        components: {
+          commands: 3,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).toContain('[/:3]')
+    })
+
+    it('should display agents badge with count', () => {
+      const plugin = createTestPlugin({
+        components: {
+          agents: 2,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).toContain('[@:2]')
+    })
+
+    it('should display hooks badge without count', () => {
+      const plugin = createTestPlugin({
+        components: {
+          hooks: true,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).toContain('[H]')
+    })
+
+    it('should display MCP servers badge with count', () => {
+      const plugin = createTestPlugin({
+        components: {
+          mcpServers: 2,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).toContain('[M:2]')
+    })
+
+    it('should display LSP servers badge with count', () => {
+      const plugin = createTestPlugin({
+        components: {
+          lspServers: 1,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).toContain('[L:1]')
+    })
+
+    it('should display multiple component badges', () => {
+      const plugin = createTestPlugin({
+        components: {
+          skills: 3,
+          commands: 2,
+          mcpServers: 1,
+          hooks: true,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).toContain('[S:3]')
+      expect(lastFrame()).toContain('[/:2]')
+      expect(lastFrame()).toContain('[M:1]')
+      expect(lastFrame()).toContain('[H]')
+    })
+
+    it('should not display badges for components with zero count', () => {
+      const plugin = createTestPlugin({
+        components: {
+          skills: 0,
+          commands: 2,
+        },
+      })
+      const { lastFrame } = render(<PluginDetail plugin={plugin} />)
+
+      expect(lastFrame()).not.toContain('[S')
+      expect(lastFrame()).toContain('[/:2]')
+    })
+  })
 })

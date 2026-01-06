@@ -9,6 +9,7 @@ import {
   listDirectories,
 } from './fileService.js'
 import { getEnabledPlugins } from './settingsService.js'
+import { detectPluginComponents } from './componentService.js'
 import { PATHS, getMarketplaceJsonPath } from '../utils/paths.js'
 import type {
   Plugin,
@@ -66,6 +67,11 @@ export function loadAllPlugins(): Plugin[] {
           const pluginId = `${plugin.name}@${marketplace}`
           const installedEntry = installedMap.get(pluginId)
 
+          // Detect components for installed plugins
+          const components = installedEntry
+            ? detectPluginComponents(installedEntry.installPath)
+            : undefined
+
           plugins.push({
             id: pluginId,
             name: plugin.name,
@@ -83,6 +89,7 @@ export function loadAllPlugins(): Plugin[] {
             tags: plugin.tags || plugin.keywords,
             isLocal: installedEntry?.isLocal,
             gitCommitSha: installedEntry?.gitCommitSha,
+            components,
           })
         }
       }

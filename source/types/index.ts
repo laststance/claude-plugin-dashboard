@@ -4,6 +4,27 @@
  */
 
 /**
+ * Component types provided by a plugin
+ * Detected by scanning plugin directory structure and plugin.json
+ * @example
+ * { skills: 5, commands: 2, mcpServers: 1 } // Plugin with skills, commands, and MCP
+ */
+export interface PluginComponents {
+  /** Count of skill directories in skills/ */
+  skills?: number
+  /** Count of slash command .md files in commands/ */
+  commands?: number
+  /** Count of subagent .md files in agents/ */
+  agents?: number
+  /** Whether hooks are configured (hooks/ dir or hooks.json exists) */
+  hooks?: boolean
+  /** Count of MCP server configurations in plugin.json mcpServers field */
+  mcpServers?: number
+  /** Count of LSP server configurations in .lsp.json */
+  lspServers?: number
+}
+
+/**
  * Aggregated plugin data from multiple sources
  * Combines data from settings.json, installed_plugins.json, marketplace.json, etc.
  */
@@ -43,6 +64,8 @@ export interface Plugin {
   isLocal?: boolean
   /** Git commit SHA (if installed) */
   gitCommitSha?: string
+  /** Component types provided by this plugin (skills, commands, MCP, etc.) */
+  components?: PluginComponents
 }
 
 /**

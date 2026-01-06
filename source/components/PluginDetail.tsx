@@ -5,6 +5,7 @@
 
 import { Box, Text } from 'ink'
 import StatusIcon from './StatusIcon.js'
+import ComponentBadges from './ComponentBadges.js'
 import type { Plugin } from '../types/index.js'
 
 interface PluginDetailProps {
@@ -68,6 +69,12 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
         )}
         {plugin.homepage && (
           <DetailRow label="Homepage" value={plugin.homepage} />
+        )}
+        {plugin.components && (
+          <Box gap={1}>
+            <Text color="gray">Components:</Text>
+            <ComponentBadges components={plugin.components} />
+          </Box>
         )}
       </Box>
 

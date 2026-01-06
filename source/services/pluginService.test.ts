@@ -17,6 +17,10 @@ vi.mock('./settingsService.js', () => ({
   getEnabledPlugins: vi.fn(() => ({})),
 }))
 
+vi.mock('./componentService.js', () => ({
+  detectPluginComponents: vi.fn(() => undefined),
+}))
+
 vi.mock('../utils/paths.js', () => ({
   PATHS: {
     installedPlugins: '/mock/.claude/plugins/installed_plugins.json',
