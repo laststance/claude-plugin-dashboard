@@ -1,6 +1,8 @@
 # Claude Code Plugin Dashboard
 
 [![npm version](https://img.shields.io/npm/v/@laststance/claude-plugin-dashboard)](https://www.npmjs.com/package/@laststance/claude-plugin-dashboard)
+[![CI](https://github.com/laststance/claude-plugin-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/laststance/claude-plugin-dashboard/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/laststance/claude-plugin-dashboard/graph/badge.svg?token=LO8NM55XCF)](https://codecov.io/gh/laststance/claude-plugin-dashboard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 An interactive CLI dashboard to browse, install, and manage [Claude Code](https://claude.ai/code) plugins.
