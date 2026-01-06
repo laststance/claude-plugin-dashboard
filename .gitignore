@@ -30,3 +30,6 @@ __pycache__/
 
 # Vitest
 coverage/
+
+# shellwright screenshots
+assets/screenshots/

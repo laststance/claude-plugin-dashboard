@@ -14,12 +14,14 @@ Built with [Ink](https://github.com/vadimdemedes/ink) (React for CLI).
 
 ## Features
 
-- 🔍 **Discover** - Browse 100+ plugins from multiple marketplaces
+- ✅ **Enabled** - Default view showing active plugins (installed AND enabled)
 - 📦 **Install/Uninstall** - Install and uninstall plugins directly from the dashboard
-- ✅ **Enable/Disable** - Toggle plugins on/off with a single key
-- 🏪 **Marketplaces** - Explore plugin sources
+- 🔄 **Enable/Disable** - Toggle plugins on/off with a single key
+- 🔍 **Discover** - Browse 100+ plugins from multiple marketplaces
+- 🏪 **Marketplaces** - Add, remove, and update plugin sources
 - ⚠️ **Errors** - Debug plugin issues
-- ⌨️ **Keyboard-driven** - Full keyboard navigation with Emacs-style shortcuts
+- ⌨️ **Focus Zone Navigation** - 3-zone keyboard model (TabBar → Search → List)
+- 🆘 **Help Overlay** - Press `h` for full keyboard shortcuts
 - 🎨 **Beautiful TUI** - Terminal UI that matches Claude Code's design
 
 ## Prerequisites
@@ -45,21 +47,26 @@ This opens the interactive TUI dashboard.
 
 **Keyboard Shortcuts:**
 
-| Key       | Action                                      |
-| --------- | ------------------------------------------- |
-| `←` `→`   | Switch tabs                                 |
-| `↑` `↓`   | Navigate list                               |
-| `^P` `^N` | Navigate list (Emacs-style)                 |
-| `i`       | Install selected plugin                     |
-| `u`       | Uninstall selected plugin (with confirm)    |
-| `Space`   | Toggle plugin enable/disable                |
-| `Enter`   | View details / Toggle                       |
-| `/`       | Search plugins                              |
-| `s`       | Cycle sort options (Installs → Name → Date) |
-| `S`       | Toggle sort order (Asc/Desc)                |
-| `Tab`     | Next tab                                    |
-| `Esc`     | Clear search / Cancel                       |
-| `q`       | Quit                                        |
+| Key       | Action                                        |
+| --------- | --------------------------------------------- |
+| `↑` `↓`   | Navigate within zone / Move between zones     |
+| `←` `→`   | Switch tabs (when TabBar focused)             |
+| `^P` `^N` | Navigate list (Emacs-style vertical)          |
+| `^B` `^F` | Switch tabs (Emacs-style horizontal)          |
+| `Tab`     | Next tab                                      |
+| `i`       | Install selected plugin                       |
+| `u`       | Uninstall selected plugin (with confirm)      |
+| `Space`   | Toggle plugin enable/disable                  |
+| `Enter`   | Install (Discover) / Toggle (Installed)       |
+| `/`       | Search (works on all plugin/marketplace tabs) |
+| `s`       | Cycle sort options (Installs → Name → Date)   |
+| `S`       | Toggle sort order (Asc/Desc)                  |
+| `a`       | Add marketplace (Marketplaces tab)            |
+| `d`       | Remove marketplace (Marketplaces tab)         |
+| `r`       | Update marketplace (Marketplaces tab)         |
+| `h`       | Show help overlay                             |
+| `Esc`     | Clear search / Close dialog / Cancel          |
+| `q`/`^C`  | Quit                                          |
 
 ### Command Line Mode
 
@@ -94,14 +101,14 @@ claude-plugin-dashboard help
 
 ## Dashboard Tabs
 
-### Discover
+### Enabled (Default)
 
-Browse all available plugins from all configured marketplaces:
+View your currently active plugins (installed AND enabled):
 
-- Search by name, description, or tags
-- Sort by install count, name, or date
-- Install plugins with `i` key
-- View plugin details including install count and description
+- Shows only plugins that are ready to use
+- Quick status overview of your Claude Code setup
+- Toggle plugins on/off with `Space`
+- Search with `/` to filter enabled plugins
 
 ### Installed
 
@@ -110,15 +117,26 @@ Manage your installed plugins:
 - See enabled (●) and disabled (◐) status at a glance
 - Toggle plugins on/off with `Space`
 - Uninstall plugins with `u` (with Y/N confirmation)
-- View installation details
+- Search installed plugins with `/`
+
+### Discover
+
+Browse all available plugins from all configured marketplaces:
+
+- Search by name, description, or tags
+- Sort by install count, name, or date
+- Install plugins with `i` key or `Enter`
+- View plugin details including install count and description
 
 ### Marketplaces
 
-Explore plugin sources:
+Manage plugin sources:
 
-- View all configured marketplaces
-- See plugin counts per marketplace
-- Check last update times
+- **Add** marketplace with `a` key (supports GitHub shorthand, Git URLs, local paths)
+- **Remove** marketplace with `d` key (with confirmation)
+- **Update** marketplace catalog with `r` key
+- Search marketplaces with `/`
+- View plugin counts and last update times
 
 ### Errors
 
@@ -200,8 +218,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Local Development
 
 ```bash
-git clone https://github.com/laststance/claude-code-plugin-dashboard.git
-cd claude-code-plugin-dashboard
+git clone https://github.com/laststance/claude-plugin-dashboard.git
+cd claude-plugin-dashboard
 pnpm install
 pnpm build
 pnpm start
@@ -225,6 +243,24 @@ MIT © [Laststance.io](https://github.com/laststance)
 - [SuperClaude](https://github.com/SuperClaude-Org/SuperClaude_Framework) - Claude Code enhancement framework
 
 ## Changelog
+
+### v0.2.0
+
+- **Enabled tab**: New default view showing active plugins (installed AND enabled)
+- **Focus zone navigation**: 3-zone keyboard model (TabBar → Search → List)
+- **Emacs keybindings**: `Ctrl+B`/`Ctrl+F` for horizontal tab switching
+- **Marketplace management**: Add (`a`), remove (`d`), update (`r`) plugin sources
+- **Search on all tabs**: `/` now works on Enabled, Installed, and Marketplaces tabs
+- **Help overlay**: Press `h` to show all keyboard shortcuts
+- **Context-aware Enter**: Installs on Discover, toggles on Installed/Enabled
+- **Plugin component types**: Show component types (skill, hook, agent) in detail view
+- **CI/CD**: GitHub Actions workflow for lint, test, and build
+- **96.67% test coverage**: Comprehensive Vitest and E2E test suites
+
+### v0.1.1
+
+- Fix: Clear terminal screen when exiting dashboard
+- Fix: Repository URL in package.json
 
 ### v0.1.0
 
