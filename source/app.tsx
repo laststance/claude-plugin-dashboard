@@ -24,6 +24,12 @@ import {
   installPlugin,
   uninstallPlugin,
 } from './services/pluginActionsService.js'
+import {
+  addMarketplace,
+  removeMarketplace,
+  updateMarketplace,
+} from './services/marketplaceActionsService.js'
+import AddMarketplaceDialog from './components/AddMarketplaceDialog.js'
 import ConfirmDialog from './components/ConfirmDialog.js'
 import HelpOverlay from './components/HelpOverlay.js'
 import type { AppState, Action, Plugin, FocusZone } from './types/index.js'
@@ -49,6 +55,10 @@ export const initialState: AppState = {
   operationPluginId: null,
   confirmUninstall: false,
   showHelp: false,
+  marketplaceOperation: 'idle',
+  operationMarketplaceId: null,
+  confirmRemoveMarketplace: false,
+  showAddMarketplaceDialog: false,
 }
 
 /**
@@ -250,6 +260,54 @@ export function appReducer(state: AppState, action: Action): AppState {
         showHelp: !state.showHelp,
       }
 
+    case 'SHOW_CONFIRM_REMOVE_MARKETPLACE':
+      return {
+        ...state,
+        confirmRemoveMarketplace: true,
+        operationMarketplaceId: action.payload,
+      }
+
+    case 'HIDE_CONFIRM_REMOVE_MARKETPLACE':
+      return {
+        ...state,
+        confirmRemoveMarketplace: false,
+        operationMarketplaceId: null,
+      }
+
+    case 'SHOW_ADD_MARKETPLACE_DIALOG':
+      return {
+        ...state,
+        showAddMarketplaceDialog: true,
+        searchQuery: '', // Reuse searchQuery for dialog input
+      }
+
+    case 'HIDE_ADD_MARKETPLACE_DIALOG':
+      return {
+        ...state,
+        showAddMarketplaceDialog: false,
+        searchQuery: '',
+      }
+
+    case 'START_MARKETPLACE_OPERATION':
+      return {
+        ...state,
+        marketplaceOperation: action.payload.operation,
+        operationMarketplaceId: action.payload.marketplaceId ?? null,
+        message:
+          action.payload.operation === 'adding'
+            ? 'Adding marketplace...'
+            : action.payload.operation === 'removing'
+              ? `Removing ${action.payload.marketplaceId}...`
+              : `Updating ${action.payload.marketplaceId || 'marketplaces'}...`,
+      }
+
+    case 'END_MARKETPLACE_OPERATION':
+      return {
+        ...state,
+        marketplaceOperation: 'idle',
+        operationMarketplaceId: null,
+      }
+
     default:
       return state
   }
@@ -367,10 +425,107 @@ export default function App() {
     }
   }
 
+  /**
+   * Handle adding a new marketplace
+   * @param source - Marketplace source (e.g., "owner/repo", URL, or local path)
+   */
+  async function handleAddMarketplace(source: string) {
+    dispatch({
+      type: 'START_MARKETPLACE_OPERATION',
+      payload: { operation: 'adding' },
+    })
+
+    const result = await addMarketplace(source)
+
+    dispatch({ type: 'END_MARKETPLACE_OPERATION' })
+    dispatch({ type: 'HIDE_ADD_MARKETPLACE_DIALOG' })
+
+    if (result.success) {
+      // Reload marketplaces to get fresh state
+      const marketplaces = loadMarketplaces()
+      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
+      // Also reload plugins as new marketplace may have plugins
+      const plugins = loadAllPlugins()
+      dispatch({ type: 'SET_PLUGINS', payload: plugins })
+      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+    } else {
+      dispatch({
+        type: 'SET_MESSAGE',
+        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+      })
+    }
+  }
+
+  /**
+   * Handle removing a marketplace
+   * @param marketplaceId - Marketplace identifier to remove
+   */
+  async function handleRemoveMarketplace(marketplaceId: string) {
+    dispatch({
+      type: 'START_MARKETPLACE_OPERATION',
+      payload: { operation: 'removing', marketplaceId },
+    })
+
+    const result = await removeMarketplace(marketplaceId)
+
+    dispatch({ type: 'END_MARKETPLACE_OPERATION' })
+
+    if (result.success) {
+      // Reload marketplaces to get fresh state
+      const marketplaces = loadMarketplaces()
+      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
+      // Also reload plugins as removed marketplace's plugins should be gone
+      const plugins = loadAllPlugins()
+      dispatch({ type: 'SET_PLUGINS', payload: plugins })
+      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+      // Reset selection if needed
+      if (state.selectedIndex >= marketplaces.length) {
+        dispatch({
+          type: 'SET_SELECTED_INDEX',
+          payload: Math.max(0, marketplaces.length - 1),
+        })
+      }
+    } else {
+      dispatch({
+        type: 'SET_MESSAGE',
+        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+      })
+    }
+  }
+
+  /**
+   * Handle updating a marketplace (or all marketplaces)
+   * @param marketplaceId - Optional marketplace identifier. If omitted, updates all.
+   */
+  async function handleUpdateMarketplace(marketplaceId?: string) {
+    dispatch({
+      type: 'START_MARKETPLACE_OPERATION',
+      payload: { operation: 'updating', marketplaceId },
+    })
+
+    const result = await updateMarketplace(marketplaceId)
+
+    dispatch({ type: 'END_MARKETPLACE_OPERATION' })
+
+    if (result.success) {
+      // Reload marketplaces and plugins to get fresh state
+      const marketplaces = loadMarketplaces()
+      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
+      const plugins = loadAllPlugins()
+      dispatch({ type: 'SET_PLUGINS', payload: plugins })
+      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+    } else {
+      dispatch({
+        type: 'SET_MESSAGE',
+        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+      })
+    }
+  }
+
   // Keyboard input handling
   useInput((input, key) => {
-    // Block all input during operations
-    if (state.operation !== 'idle') {
+    // Block all input during operations (plugin or marketplace)
+    if (state.operation !== 'idle' || state.marketplaceOperation !== 'idle') {
       return
     }
 
@@ -394,7 +549,7 @@ export default function App() {
       return
     }
 
-    // Handle confirmation dialog
+    // Handle plugin uninstall confirmation dialog
     if (state.confirmUninstall && state.operationPluginId) {
       if (input === 'y' || input === 'Y') {
         dispatch({ type: 'HIDE_CONFIRM_UNINSTALL' })
@@ -404,6 +559,53 @@ export default function App() {
       if (input === 'n' || input === 'N' || key.escape) {
         dispatch({ type: 'HIDE_CONFIRM_UNINSTALL' })
         dispatch({ type: 'SET_MESSAGE', payload: 'Uninstall cancelled' })
+        return
+      }
+      return
+    }
+
+    // Handle marketplace remove confirmation dialog
+    if (state.confirmRemoveMarketplace && state.operationMarketplaceId) {
+      if (input === 'y' || input === 'Y') {
+        dispatch({ type: 'HIDE_CONFIRM_REMOVE_MARKETPLACE' })
+        handleRemoveMarketplace(state.operationMarketplaceId)
+        return
+      }
+      if (input === 'n' || input === 'N' || key.escape) {
+        dispatch({ type: 'HIDE_CONFIRM_REMOVE_MARKETPLACE' })
+        dispatch({ type: 'SET_MESSAGE', payload: 'Remove cancelled' })
+        return
+      }
+      return
+    }
+
+    // Handle add marketplace dialog input
+    if (state.showAddMarketplaceDialog) {
+      // Submit on Enter
+      if (key.return && state.searchQuery.trim()) {
+        handleAddMarketplace(state.searchQuery.trim())
+        return
+      }
+      // Cancel on Escape
+      if (key.escape) {
+        dispatch({ type: 'HIDE_ADD_MARKETPLACE_DIALOG' })
+        dispatch({ type: 'SET_MESSAGE', payload: 'Add marketplace cancelled' })
+        return
+      }
+      // Backspace
+      if (key.backspace || key.delete) {
+        dispatch({
+          type: 'SET_SEARCH_QUERY',
+          payload: state.searchQuery.slice(0, -1),
+        })
+        return
+      }
+      // Character input
+      if (input && input.length === 1 && !key.ctrl && !key.meta) {
+        dispatch({
+          type: 'SET_SEARCH_QUERY',
+          payload: state.searchQuery + input,
+        })
         return
       }
       return
@@ -628,6 +830,39 @@ export default function App() {
       return
     }
 
+    // Marketplace-specific key bindings
+    if (state.activeTab === 'marketplaces' && state.focusZone === 'list') {
+      // Add marketplace (a key)
+      if (input === 'a') {
+        dispatch({ type: 'SHOW_ADD_MARKETPLACE_DIALOG' })
+        return
+      }
+
+      // Remove marketplace (d key or Backspace)
+      if (input === 'd' || key.backspace || key.delete) {
+        const selectedMarketplace = filteredMarketplaces[state.selectedIndex]
+        if (selectedMarketplace) {
+          dispatch({
+            type: 'SHOW_CONFIRM_REMOVE_MARKETPLACE',
+            payload: selectedMarketplace.id,
+          })
+        }
+        return
+      }
+
+      // Update marketplace (u key)
+      if (input === 'u') {
+        const selectedMarketplace = filteredMarketplaces[state.selectedIndex]
+        if (selectedMarketplace) {
+          handleUpdateMarketplace(selectedMarketplace.id)
+        } else {
+          // No marketplace selected, update all
+          handleUpdateMarketplace()
+        }
+        return
+      }
+    }
+
     // Install (i key) - only on enabled/installed/discover tabs
     if (
       input === 'i' &&
@@ -784,9 +1019,21 @@ export default function App() {
         )}
       </Box>
 
-      {/* Confirmation Dialog */}
+      {/* Plugin Uninstall Confirmation Dialog */}
       {state.confirmUninstall && state.operationPluginId && (
         <ConfirmDialog message={`Uninstall ${state.operationPluginId}?`} />
+      )}
+
+      {/* Marketplace Remove Confirmation Dialog */}
+      {state.confirmRemoveMarketplace && state.operationMarketplaceId && (
+        <ConfirmDialog
+          message={`Remove marketplace ${state.operationMarketplaceId}?`}
+        />
+      )}
+
+      {/* Add Marketplace Dialog */}
+      {state.showAddMarketplaceDialog && (
+        <AddMarketplaceDialog value={state.searchQuery} />
       )}
 
       {/* Help Overlay */}
@@ -855,7 +1102,12 @@ export default function App() {
 
           // Marketplaces tab hints
           if (state.activeTab === 'marketplaces') {
-            return [{ key: '/', action: 'search' }]
+            return [
+              { key: '/', action: 'search' },
+              { key: 'a', action: 'add' },
+              { key: 'd', action: 'remove' },
+              { key: 'u', action: 'update' },
+            ]
           }
 
           return undefined
