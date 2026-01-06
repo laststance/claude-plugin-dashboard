@@ -171,6 +171,11 @@ export interface Settings {
 export type FocusZone = 'tabbar' | 'search' | 'list'
 
 /**
+ * Marketplace operation types
+ */
+export type MarketplaceOperation = 'idle' | 'adding' | 'removing' | 'updating'
+
+/**
  * Application state for useReducer
  */
 export interface AppState {
@@ -206,6 +211,16 @@ export interface AppState {
   confirmUninstall: boolean
   /** Whether help overlay is showing */
   showHelp: boolean
+  /** Current marketplace operation */
+  marketplaceOperation: MarketplaceOperation
+  /** Marketplace ID being operated on */
+  operationMarketplaceId: string | null
+  /** Whether remove marketplace confirmation dialog is showing */
+  confirmRemoveMarketplace: boolean
+  /** Whether add marketplace dialog is showing */
+  showAddMarketplaceDialog: boolean
+  /** Error message for add marketplace dialog */
+  addMarketplaceError: string | null
 }
 
 /**
@@ -239,3 +254,13 @@ export type Action =
   | { type: 'HIDE_CONFIRM_UNINSTALL' }
   | { type: 'TOGGLE_HELP' }
   | { type: 'SET_FOCUS_ZONE'; payload: FocusZone }
+  | { type: 'SHOW_CONFIRM_REMOVE_MARKETPLACE'; payload: string }
+  | { type: 'HIDE_CONFIRM_REMOVE_MARKETPLACE' }
+  | { type: 'SHOW_ADD_MARKETPLACE_DIALOG' }
+  | { type: 'HIDE_ADD_MARKETPLACE_DIALOG' }
+  | {
+      type: 'START_MARKETPLACE_OPERATION'
+      payload: { operation: MarketplaceOperation; marketplaceId?: string }
+    }
+  | { type: 'END_MARKETPLACE_OPERATION' }
+  | { type: 'SET_ADD_MARKETPLACE_ERROR'; payload: string | null }
