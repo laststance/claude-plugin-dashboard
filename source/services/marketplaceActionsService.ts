@@ -29,7 +29,11 @@ export interface MarketplaceActionResult {
 export function addMarketplace(
   source: string,
 ): Promise<MarketplaceActionResult> {
-  return executeMarketplaceAction('add', source)
+  return executeMarketplaceCommand(
+    ['plugin', 'marketplace', 'add', source],
+    `Added marketplace: ${source}`,
+    `Failed to add marketplace: ${source}`,
+  )
 }
 
 /**
@@ -42,7 +46,11 @@ export function addMarketplace(
 export function removeMarketplace(
   name: string,
 ): Promise<MarketplaceActionResult> {
-  return executeMarketplaceAction('remove', name)
+  return executeMarketplaceCommand(
+    ['plugin', 'marketplace', 'remove', name],
+    `Removed marketplace: ${name}`,
+    `Failed to remove marketplace: ${name}`,
+  )
 }
 
 /**
@@ -58,12 +66,30 @@ export function removeMarketplace(
 export function updateMarketplace(
   name?: string,
 ): Promise<MarketplaceActionResult> {
-  return new Promise((resolve) => {
-    const args = ['plugin', 'marketplace', 'update']
-    if (name) {
-      args.push(name)
-    }
+  const args = ['plugin', 'marketplace', 'update']
+  if (name) {
+    args.push(name)
+  }
+  return executeMarketplaceCommand(
+    args,
+    name ? `Updated ${name}` : 'Updated all marketplaces',
+    `Failed to update ${name || 'marketplaces'}`,
+  )
+}
 
+/**
+ * Execute a marketplace CLI command with generic args and messages
+ * @param args - CLI arguments to pass to claude command
+ * @param successMessage - Message to return on success
+ * @param failureMessage - Message to return on failure
+ * @returns Promise resolving to action result
+ */
+function executeMarketplaceCommand(
+  args: string[],
+  successMessage: string,
+  failureMessage: string,
+): Promise<MarketplaceActionResult> {
+  return new Promise((resolve) => {
     const child = spawn('claude', args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: false,
@@ -84,67 +110,12 @@ export function updateMarketplace(
       if (code === 0) {
         resolve({
           success: true,
-          message: name ? `Updated ${name}` : 'Updated all marketplaces',
+          message: successMessage,
         })
       } else {
         resolve({
           success: false,
-          message: `Failed to update ${name || 'marketplaces'}`,
-          error: stderr || stdout || `Exit code: ${code}`,
-        })
-      }
-    })
-
-    child.on('error', (err: Error) => {
-      resolve({
-        success: false,
-        message: 'Failed to execute claude command',
-        error: err.message,
-      })
-    })
-  })
-}
-
-/**
- * Execute a marketplace CLI command (add/remove)
- * @param action - 'add' or 'remove'
- * @param target - Source (for add) or name (for remove)
- * @returns Promise resolving to action result
- */
-function executeMarketplaceAction(
-  action: 'add' | 'remove',
-  target: string,
-): Promise<MarketplaceActionResult> {
-  return new Promise((resolve) => {
-    const child = spawn('claude', ['plugin', 'marketplace', action, target], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: false,
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    child.stdout?.on('data', (data: Buffer) => {
-      stdout += data.toString()
-    })
-
-    child.stderr?.on('data', (data: Buffer) => {
-      stderr += data.toString()
-    })
-
-    child.on('close', (code) => {
-      const actionPastTense = action === 'add' ? 'Added' : 'Removed'
-      const actionVerb = action === 'add' ? 'add' : 'remove'
-
-      if (code === 0) {
-        resolve({
-          success: true,
-          message: `${actionPastTense} marketplace: ${target}`,
-        })
-      } else {
-        resolve({
-          success: false,
-          message: `Failed to ${actionVerb} marketplace: ${target}`,
+          message: failureMessage,
           error: stderr || stdout || `Exit code: ${code}`,
         })
       }

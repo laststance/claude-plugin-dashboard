@@ -5,7 +5,7 @@
 
 import { Box, Text } from 'ink'
 
-interface AddMarketplaceDialogProps {
+export interface AddMarketplaceDialogProps {
   /** Current input value */
   value: string
   /** Error message to display (if any) */

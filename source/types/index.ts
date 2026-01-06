@@ -219,6 +219,8 @@ export interface AppState {
   confirmRemoveMarketplace: boolean
   /** Whether add marketplace dialog is showing */
   showAddMarketplaceDialog: boolean
+  /** Error message for add marketplace dialog */
+  addMarketplaceError: string | null
 }
 
 /**
@@ -261,3 +263,4 @@ export type Action =
       payload: { operation: MarketplaceOperation; marketplaceId?: string }
     }
   | { type: 'END_MARKETPLACE_OPERATION' }
+  | { type: 'SET_ADD_MARKETPLACE_ERROR'; payload: string | null }

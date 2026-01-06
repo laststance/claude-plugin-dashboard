@@ -32,7 +32,13 @@ import {
 import AddMarketplaceDialog from './components/AddMarketplaceDialog.js'
 import ConfirmDialog from './components/ConfirmDialog.js'
 import HelpOverlay from './components/HelpOverlay.js'
-import type { AppState, Action, Plugin, FocusZone } from './types/index.js'
+import type {
+  AppState,
+  Action,
+  Plugin,
+  FocusZone,
+  MarketplaceOperation,
+} from './types/index.js'
 import packageJson from '../package.json' with { type: 'json' }
 
 /**
@@ -59,6 +65,7 @@ export const initialState: AppState = {
   operationMarketplaceId: null,
   confirmRemoveMarketplace: false,
   showAddMarketplaceDialog: false,
+  addMarketplaceError: null,
 }
 
 /**
@@ -74,6 +81,28 @@ export function getAvailableZones(
     return ['tabbar', 'list']
   }
   return ['tabbar', 'search', 'list']
+}
+
+/**
+ * Get display message for marketplace operation status
+ * @param operation - The marketplace operation type
+ * @param marketplaceId - Optional marketplace identifier
+ * @returns Display message for the operation
+ */
+function getMarketplaceOperationMessage(
+  operation: MarketplaceOperation,
+  marketplaceId?: string | null,
+): string {
+  switch (operation) {
+    case 'adding':
+      return 'Adding marketplace...'
+    case 'removing':
+      return `Removing ${marketplaceId}...`
+    case 'updating':
+      return `Updating ${marketplaceId || 'marketplaces'}...`
+    default:
+      return ''
+  }
 }
 
 /**
@@ -279,6 +308,7 @@ export function appReducer(state: AppState, action: Action): AppState {
         ...state,
         showAddMarketplaceDialog: true,
         searchQuery: '', // Reuse searchQuery for dialog input
+        addMarketplaceError: null, // Clear previous error
       }
 
     case 'HIDE_ADD_MARKETPLACE_DIALOG':
@@ -286,6 +316,13 @@ export function appReducer(state: AppState, action: Action): AppState {
         ...state,
         showAddMarketplaceDialog: false,
         searchQuery: '',
+        addMarketplaceError: null,
+      }
+
+    case 'SET_ADD_MARKETPLACE_ERROR':
+      return {
+        ...state,
+        addMarketplaceError: action.payload,
       }
 
     case 'START_MARKETPLACE_OPERATION':
@@ -293,12 +330,10 @@ export function appReducer(state: AppState, action: Action): AppState {
         ...state,
         marketplaceOperation: action.payload.operation,
         operationMarketplaceId: action.payload.marketplaceId ?? null,
-        message:
-          action.payload.operation === 'adding'
-            ? 'Adding marketplace...'
-            : action.payload.operation === 'removing'
-              ? `Removing ${action.payload.marketplaceId}...`
-              : `Updating ${action.payload.marketplaceId || 'marketplaces'}...`,
+        message: getMarketplaceOperationMessage(
+          action.payload.operation,
+          action.payload.marketplaceId,
+        ),
       }
 
     case 'END_MARKETPLACE_OPERATION':
@@ -438,20 +473,23 @@ export default function App() {
     const result = await addMarketplace(source)
 
     dispatch({ type: 'END_MARKETPLACE_OPERATION' })
-    dispatch({ type: 'HIDE_ADD_MARKETPLACE_DIALOG' })
 
     if (result.success) {
+      dispatch({ type: 'HIDE_ADD_MARKETPLACE_DIALOG' })
       // Reload marketplaces to get fresh state
       const marketplaces = loadMarketplaces()
       dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
       // Also reload plugins as new marketplace may have plugins
       const plugins = loadAllPlugins()
       dispatch({ type: 'SET_PLUGINS', payload: plugins })
+      // Reset selection to avoid pointing to a different marketplace after re-sort
+      dispatch({ type: 'SET_SELECTED_INDEX', payload: 0 })
       dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
     } else {
+      // Keep dialog open and show error inline
       dispatch({
-        type: 'SET_MESSAGE',
-        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+        type: 'SET_ADD_MARKETPLACE_ERROR',
+        payload: result.error || result.message,
       })
     }
   }
@@ -513,6 +551,8 @@ export default function App() {
       dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
       const plugins = loadAllPlugins()
       dispatch({ type: 'SET_PLUGINS', payload: plugins })
+      // Reset selection to avoid pointing to a different marketplace after re-sort
+      dispatch({ type: 'SET_SELECTED_INDEX', payload: 0 })
       dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
     } else {
       dispatch({
@@ -1033,7 +1073,10 @@ export default function App() {
 
       {/* Add Marketplace Dialog */}
       {state.showAddMarketplaceDialog && (
-        <AddMarketplaceDialog value={state.searchQuery} />
+        <AddMarketplaceDialog
+          value={state.searchQuery}
+          error={state.addMarketplaceError ?? undefined}
+        />
       )}
 
       {/* Help Overlay */}
