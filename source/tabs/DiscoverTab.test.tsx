@@ -7,7 +7,7 @@ import React from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'ink-testing-library'
 import DiscoverTab from './DiscoverTab.js'
-import type { Plugin, AppState } from '../types/index.js'
+import type { Plugin, AppState, FocusZone } from '../types/index.js'
 
 /**
  * Create a mock plugin for testing
@@ -35,7 +35,7 @@ describe('DiscoverTab', () => {
     searchQuery: '',
     sortBy: 'installs' as AppState['sortBy'],
     sortOrder: 'desc' as AppState['sortOrder'],
-    isSearchMode: false,
+    focusZone: 'list' as FocusZone,
   }
 
   describe('header rendering', () => {
@@ -117,7 +117,7 @@ describe('DiscoverTab', () => {
 
     it('should show cursor when in search mode', () => {
       const { lastFrame } = render(
-        <DiscoverTab {...defaultProps} isSearchMode={true} />,
+        <DiscoverTab {...defaultProps} focusZone="search" />,
       )
 
       // Cursor indicator

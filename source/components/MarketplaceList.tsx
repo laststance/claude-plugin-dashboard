@@ -9,16 +9,19 @@ import type { Marketplace } from '../types/index.js'
 interface MarketplaceListProps {
   marketplaces: Marketplace[]
   selectedIndex: number
+  /** Whether the list has keyboard focus */
+  isFocused?: boolean
 }
 
 /**
  * Displays a list of marketplaces
  * @example
- * <MarketplaceList marketplaces={marketplaces} selectedIndex={0} />
+ * <MarketplaceList marketplaces={marketplaces} selectedIndex={0} isFocused={true} />
  */
 export default function MarketplaceList({
   marketplaces,
   selectedIndex,
+  isFocused = true,
 }: MarketplaceListProps) {
   if (marketplaces.length === 0) {
     return (
@@ -36,11 +39,26 @@ export default function MarketplaceList({
         return (
           <Box key={marketplace.id} paddingX={1}>
             <Box width={2}>
-              {isSelected ? <Text color="cyan">{'>'}</Text> : <Text> </Text>}
+              {isSelected && isFocused ? (
+                <Text color="cyan">{'>'}</Text>
+              ) : isSelected ? (
+                <Text color="gray">{'›'}</Text>
+              ) : (
+                <Text> </Text>
+              )}
             </Box>
             <Box flexGrow={1} flexDirection="column">
               <Box gap={1}>
-                <Text bold color={isSelected ? 'cyan' : 'white'}>
+                <Text
+                  bold
+                  color={
+                    isSelected && isFocused
+                      ? 'cyan'
+                      : isSelected
+                        ? 'gray'
+                        : 'white'
+                  }
+                >
                   {marketplace.name || marketplace.id}
                 </Text>
                 <Text dimColor>·</Text>

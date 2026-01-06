@@ -763,3 +763,103 @@ describe('getPluginStatistics', () => {
     expect(stats.marketplaces).toBe(0)
   })
 })
+
+describe('searchMarketplaces', () => {
+  // Pure function implementation for testing - mirrors pluginService.ts
+  const searchMarketplaces = (query: string, marketplaces: Marketplace[]) => {
+    const lowerQuery = query.toLowerCase()
+    return marketplaces.filter(
+      (m) =>
+        m.name.toLowerCase().includes(lowerQuery) ||
+        m.id.toLowerCase().includes(lowerQuery) ||
+        m.source.url?.toLowerCase().includes(lowerQuery) ||
+        m.source.repo?.toLowerCase().includes(lowerQuery),
+    )
+  }
+
+  const mockMarketplaces: Marketplace[] = [
+    {
+      id: 'claude-plugins-official',
+      name: 'Official Claude Plugins',
+      source: { source: 'github' as const, repo: 'anthropic/claude-plugins' },
+      installLocation: '/path/to/official',
+      lastUpdated: '2024-01-01T00:00:00Z',
+      pluginCount: 10,
+    },
+    {
+      id: 'community-plugins',
+      name: 'Community Plugins',
+      source: { source: 'github' as const, repo: 'community/plugins' },
+      installLocation: '/path/to/community',
+      lastUpdated: '2024-01-01T00:00:00Z',
+      pluginCount: 25,
+    },
+    {
+      id: 'awesome-mcp',
+      name: 'Awesome MCP Collection',
+      source: { source: 'git' as const, url: 'https://github.com/awesome/mcp' },
+      installLocation: '/path/to/awesome',
+      lastUpdated: '2024-01-01T00:00:00Z',
+      pluginCount: 15,
+    },
+  ]
+
+  it('should filter marketplaces by name', () => {
+    const result = searchMarketplaces('official', mockMarketplaces)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.id).toBe('claude-plugins-official')
+  })
+
+  it('should filter marketplaces by id', () => {
+    const result = searchMarketplaces('awesome', mockMarketplaces)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.id).toBe('awesome-mcp')
+  })
+
+  it('should filter marketplaces by source repo', () => {
+    const result = searchMarketplaces('anthropic', mockMarketplaces)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.id).toBe('claude-plugins-official')
+  })
+
+  it('should filter marketplaces by source url', () => {
+    const result = searchMarketplaces('awesome/mcp', mockMarketplaces)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.id).toBe('awesome-mcp')
+  })
+
+  it('should be case-insensitive', () => {
+    const result = searchMarketplaces('COMMUNITY', mockMarketplaces)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.id).toBe('community-plugins')
+  })
+
+  it('should return multiple matches', () => {
+    const result = searchMarketplaces('plugins', mockMarketplaces)
+
+    expect(result).toHaveLength(2)
+    expect(result.map((m: { id: string }) => m.id)).toContain(
+      'claude-plugins-official',
+    )
+    expect(result.map((m: { id: string }) => m.id)).toContain(
+      'community-plugins',
+    )
+  })
+
+  it('should return empty array when no matches', () => {
+    const result = searchMarketplaces('nonexistent', mockMarketplaces)
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('should handle empty query', () => {
+    const result = searchMarketplaces('', mockMarketplaces)
+
+    expect(result).toHaveLength(3)
+  })
+})

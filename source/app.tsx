@@ -3,7 +3,7 @@
  * Interactive TUI to browse and manage Claude Code plugins
  */
 
-import { useState, useEffect, useReducer } from 'react'
+import { useEffect, useReducer } from 'react'
 import { Box, Text, useInput, useApp } from 'ink'
 import TabBar, { getNextTab } from './components/TabBar.js'
 import KeyHints from './components/KeyHints.js'
@@ -16,6 +16,7 @@ import {
   loadAllPlugins,
   loadMarketplaces,
   searchPlugins,
+  searchMarketplaces,
   sortPlugins,
 } from './services/pluginService.js'
 import { togglePlugin } from './services/settingsService.js'
@@ -24,13 +25,16 @@ import {
   uninstallPlugin,
 } from './services/pluginActionsService.js'
 import ConfirmDialog from './components/ConfirmDialog.js'
-import type { AppState, Action, Plugin } from './types/index.js'
+import HelpOverlay from './components/HelpOverlay.js'
+import type { AppState, Action, Plugin, FocusZone } from './types/index.js'
+import packageJson from '../package.json' with { type: 'json' }
 
 /**
  * Initial application state
  */
 export const initialState: AppState = {
   activeTab: 'enabled',
+  focusZone: 'list',
   plugins: [],
   marketplaces: [],
   errors: [],
@@ -44,6 +48,22 @@ export const initialState: AppState = {
   operation: 'idle',
   operationPluginId: null,
   confirmUninstall: false,
+  showHelp: false,
+}
+
+/**
+ * Get available focus zones for the current tab
+ * Errors tab has no search zone since it doesn't support filtering
+ * @param activeTab - The currently active tab
+ * @returns Array of available focus zones in navigation order
+ */
+export function getAvailableZones(
+  activeTab: AppState['activeTab'],
+): FocusZone[] {
+  if (activeTab === 'errors') {
+    return ['tabbar', 'list']
+  }
+  return ['tabbar', 'search', 'list']
 }
 
 /**
@@ -55,6 +75,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         activeTab: action.payload,
+        focusZone: 'list',
         selectedIndex: 0,
         searchQuery: '',
         message: null,
@@ -64,6 +85,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         activeTab: getNextTab(state.activeTab, 'next'),
+        focusZone: 'list',
         selectedIndex: 0,
         searchQuery: '',
         message: null,
@@ -73,9 +95,16 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         activeTab: getNextTab(state.activeTab, 'prev'),
+        focusZone: 'list',
         selectedIndex: 0,
         searchQuery: '',
         message: null,
+      }
+
+    case 'SET_FOCUS_ZONE':
+      return {
+        ...state,
+        focusZone: action.payload,
       }
 
     case 'SET_PLUGINS':
@@ -215,6 +244,12 @@ export function appReducer(state: AppState, action: Action): AppState {
         operationPluginId: null,
       }
 
+    case 'TOGGLE_HELP':
+      return {
+        ...state,
+        showHelp: !state.showHelp,
+      }
+
     default:
       return state
   }
@@ -263,7 +298,6 @@ export function getFilteredPlugins(state: AppState): Plugin[] {
 export default function App() {
   const { exit } = useApp()
   const [state, dispatch] = useReducer(appReducer, initialState)
-  const [isSearchMode, setIsSearchMode] = useState(false)
 
   // Load data on mount
   useEffect(() => {
@@ -340,6 +374,26 @@ export default function App() {
       return
     }
 
+    // Handle help overlay
+    if (state.showHelp) {
+      if (input === 'h' || key.escape) {
+        dispatch({ type: 'TOGGLE_HELP' })
+      }
+      return
+    }
+
+    // Exit (q or Ctrl+C) - Global handler, works in all focus zones
+    if (input === 'q' || (key.ctrl && input === 'c')) {
+      exit()
+      return
+    }
+
+    // Toggle help (h key)
+    if (input === 'h') {
+      dispatch({ type: 'TOGGLE_HELP' })
+      return
+    }
+
     // Handle confirmation dialog
     if (state.confirmUninstall && state.operationPluginId) {
       if (input === 'y' || input === 'Y') {
@@ -355,10 +409,21 @@ export default function App() {
       return
     }
 
-    // Search mode input
-    if (isSearchMode) {
-      if (key.escape || key.return) {
-        setIsSearchMode(false)
+    // Search mode input (when focusZone is 'search')
+    if (state.focusZone === 'search') {
+      // Up arrow: move focus to tabbar
+      if (key.upArrow || (key.ctrl && input === 'p')) {
+        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        return
+      }
+      // Down arrow, Enter, or Escape: move focus to list
+      if (
+        key.escape ||
+        key.return ||
+        key.downArrow ||
+        (key.ctrl && input === 'n')
+      ) {
+        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'list' })
         return
       }
       if (key.backspace || key.delete) {
@@ -378,49 +443,124 @@ export default function App() {
       return
     }
 
-    // Emacs-style navigation (Ctrl+P / Ctrl+N)
-    if (key.ctrl && input === 'p') {
-      dispatch({ type: 'MOVE_SELECTION', payload: 'up' })
+    // TabBar focus zone navigation
+    if (state.focusZone === 'tabbar') {
+      // Down arrow: move to search (or list if no search)
+      if (key.downArrow || (key.ctrl && input === 'n')) {
+        const zones = getAvailableZones(state.activeTab)
+        dispatch({
+          type: 'SET_FOCUS_ZONE',
+          payload: zones.includes('search') ? 'search' : 'list',
+        })
+        return
+      }
+      // Left/Right arrows and Ctrl+B/F: tab switching (only in tabbar)
+      // Keep focus on tabbar after navigation
+      if (key.leftArrow || (key.ctrl && input === 'b')) {
+        dispatch({ type: 'PREV_TAB' })
+        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        return
+      }
+      if (key.rightArrow || (key.ctrl && input === 'f')) {
+        dispatch({ type: 'NEXT_TAB' })
+        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        return
+      }
+      // Tab key: next tab (resets focus to list)
+      if (key.tab) {
+        dispatch({ type: 'NEXT_TAB' })
+        return
+      }
       return
     }
-    if (key.ctrl && input === 'n') {
+
+    // List focus zone navigation (default zone)
+    // Up arrow: move up in list or focus search/tabbar at top
+    if (key.upArrow || (key.ctrl && input === 'p')) {
+      if (state.selectedIndex === 0) {
+        // At top of list: move focus to search (or tabbar if no search)
+        const zones = getAvailableZones(state.activeTab)
+        dispatch({
+          type: 'SET_FOCUS_ZONE',
+          payload: zones.includes('search') ? 'search' : 'tabbar',
+        })
+      } else {
+        dispatch({ type: 'MOVE_SELECTION', payload: 'up' })
+      }
+      return
+    }
+
+    // Down arrow: move down in list
+    if (key.downArrow || (key.ctrl && input === 'n')) {
       dispatch({ type: 'MOVE_SELECTION', payload: 'down' })
       return
     }
 
-    // Tab navigation
-    if (key.leftArrow) {
-      dispatch({ type: 'PREV_TAB' })
-      return
-    }
-    if (key.rightArrow) {
-      dispatch({ type: 'NEXT_TAB' })
-      return
-    }
+    // Tab key: next tab (from list zone)
     if (key.tab) {
       dispatch({ type: 'NEXT_TAB' })
       return
     }
 
-    // List navigation
-    if (key.upArrow) {
-      dispatch({ type: 'MOVE_SELECTION', payload: 'up' })
-      return
-    }
-    if (key.downArrow) {
-      dispatch({ type: 'MOVE_SELECTION', payload: 'down' })
-      return
-    }
-
-    // Enter search mode
-    if (input === '/' && state.activeTab === 'discover') {
-      setIsSearchMode(true)
+    // Enter search mode (/ key on supported tabs)
+    const searchEnabledTabs = [
+      'enabled',
+      'installed',
+      'discover',
+      'marketplaces',
+    ]
+    if (input === '/' && searchEnabledTabs.includes(state.activeTab)) {
+      dispatch({ type: 'SET_FOCUS_ZONE', payload: 'search' })
       return
     }
 
-    // Toggle plugin (Space or Enter)
+    // Enter key: Install (non-installed) or Toggle (installed)
     if (
-      (input === ' ' || key.return) &&
+      key.return &&
+      (state.activeTab === 'enabled' ||
+        state.activeTab === 'installed' ||
+        state.activeTab === 'discover')
+    ) {
+      const items =
+        state.activeTab === 'enabled'
+          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
+          : state.activeTab === 'installed'
+            ? state.plugins.filter((p) => p.isInstalled)
+            : getFilteredPlugins(state)
+
+      const selectedPlugin = items[state.selectedIndex]
+      if (selectedPlugin) {
+        if (!selectedPlugin.isInstalled) {
+          // Install non-installed plugin
+          handleInstall(selectedPlugin.id)
+        } else {
+          // Toggle installed plugin
+          try {
+            const newState = togglePlugin(selectedPlugin.id)
+            dispatch({
+              type: 'TOGGLE_PLUGIN_ENABLED',
+              payload: selectedPlugin.id,
+            })
+            dispatch({
+              type: 'SET_MESSAGE',
+              payload: newState
+                ? `✅ ${selectedPlugin.name} enabled`
+                : `❌ ${selectedPlugin.name} disabled`,
+            })
+          } catch (error) {
+            dispatch({
+              type: 'SET_MESSAGE',
+              payload: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            })
+          }
+        }
+      }
+      return
+    }
+
+    // Toggle plugin (Space only)
+    if (
+      input === ' ' &&
       (state.activeTab === 'enabled' ||
         state.activeTab === 'installed' ||
         state.activeTab === 'discover')
@@ -536,12 +676,6 @@ export default function App() {
       }
       return
     }
-
-    // Exit (q or Ctrl+C)
-    if (input === 'q' || (key.ctrl && input === 'c')) {
-      exit()
-      return
-    }
   })
 
   // Loading state
@@ -565,10 +699,25 @@ export default function App() {
 
   // Get filtered data for current tab
   const filteredPlugins = getFilteredPlugins(state)
-  const enabledPlugins = state.plugins.filter(
+
+  // Apply search filter to enabled plugins
+  const enabledPluginsBase = state.plugins.filter(
     (p) => p.isInstalled && p.isEnabled,
   )
-  const installedPlugins = state.plugins.filter((p) => p.isInstalled)
+  const enabledPlugins = state.searchQuery
+    ? searchPlugins(state.searchQuery, enabledPluginsBase)
+    : enabledPluginsBase
+
+  // Apply search filter to installed plugins
+  const installedPluginsBase = state.plugins.filter((p) => p.isInstalled)
+  const installedPlugins = state.searchQuery
+    ? searchPlugins(state.searchQuery, installedPluginsBase)
+    : installedPluginsBase
+
+  // Apply search filter to marketplaces
+  const filteredMarketplaces = state.searchQuery
+    ? searchMarketplaces(state.searchQuery, state.marketplaces)
+    : state.marketplaces
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -578,11 +727,14 @@ export default function App() {
           ⚡ Claude Code Plugin Dashboard
         </Text>
         <Box flexGrow={1} />
-        <Text dimColor>v0.1.0</Text>
+        <Text dimColor>v{packageJson.version}</Text>
       </Box>
 
       {/* Tab bar */}
-      <TabBar activeTab={state.activeTab} />
+      <TabBar
+        activeTab={state.activeTab}
+        isFocused={state.focusZone === 'tabbar'}
+      />
 
       {/* Tab content */}
       <Box flexGrow={1} flexDirection="column">
@@ -590,6 +742,8 @@ export default function App() {
           <EnabledTab
             plugins={enabledPlugins}
             selectedIndex={state.selectedIndex}
+            searchQuery={state.searchQuery}
+            focusZone={state.focusZone}
           />
         )}
 
@@ -597,6 +751,8 @@ export default function App() {
           <InstalledTab
             plugins={installedPlugins}
             selectedIndex={state.selectedIndex}
+            searchQuery={state.searchQuery}
+            focusZone={state.focusZone}
           />
         )}
 
@@ -607,14 +763,16 @@ export default function App() {
             searchQuery={state.searchQuery}
             sortBy={state.sortBy}
             sortOrder={state.sortOrder}
-            isSearchMode={isSearchMode}
+            focusZone={state.focusZone}
           />
         )}
 
         {state.activeTab === 'marketplaces' && (
           <MarketplacesTab
-            marketplaces={state.marketplaces}
+            marketplaces={filteredMarketplaces}
             selectedIndex={state.selectedIndex}
+            searchQuery={state.searchQuery}
+            focusZone={state.focusZone}
           />
         )}
 
@@ -631,6 +789,9 @@ export default function App() {
         <ConfirmDialog message={`Uninstall ${state.operationPluginId}?`} />
       )}
 
+      {/* Help Overlay */}
+      <HelpOverlay isVisible={state.showHelp} />
+
       {/* Status message */}
       {state.message && (
         <Box marginTop={1}>
@@ -640,19 +801,65 @@ export default function App() {
 
       {/* Footer with key hints */}
       <KeyHints
-        extraHints={
-          state.activeTab === 'enabled' ||
-          state.activeTab === 'installed' ||
-          state.activeTab === 'discover'
-            ? [
-                { key: 'i', action: 'install' },
-                { key: 'u', action: 'uninstall' },
-                ...(state.activeTab === 'discover'
-                  ? [{ key: 's', action: 'sort' }]
-                  : []),
-              ]
-            : undefined
-        }
+        focusZone={state.focusZone}
+        extraHints={(() => {
+          // Search mode - no extra hints (base hints cover it)
+          if (state.focusZone === 'search') {
+            return undefined
+          }
+
+          // TabBar mode - no extra hints
+          if (state.focusZone === 'tabbar') {
+            return undefined
+          }
+
+          // List mode - add tab-specific hints
+          // Plugin tabs hints (enabled, installed, discover)
+          if (
+            state.activeTab === 'enabled' ||
+            state.activeTab === 'installed' ||
+            state.activeTab === 'discover'
+          ) {
+            const hints = [
+              { key: '/', action: 'search' },
+              { key: 'i', action: 'install' },
+              { key: 'u', action: 'uninstall' },
+            ]
+
+            // Get selected plugin to determine Enter action
+            const items =
+              state.activeTab === 'enabled'
+                ? enabledPlugins
+                : state.activeTab === 'installed'
+                  ? installedPlugins
+                  : filteredPlugins
+
+            const selectedPlugin = items[state.selectedIndex]
+
+            // Add contextual Enter hint
+            if (selectedPlugin) {
+              if (!selectedPlugin.isInstalled) {
+                hints.push({ key: 'Enter', action: 'install' })
+              } else {
+                hints.push({ key: 'Enter', action: 'toggle' })
+              }
+            }
+
+            // Add sort hint for discover tab
+            if (state.activeTab === 'discover') {
+              hints.push({ key: 's', action: 'sort' })
+            }
+
+            return hints
+          }
+
+          // Marketplaces tab hints
+          if (state.activeTab === 'marketplaces') {
+            return [{ key: '/', action: 'search' }]
+          }
+
+          return undefined
+        })()}
       />
     </Box>
   )

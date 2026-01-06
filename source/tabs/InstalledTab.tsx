@@ -6,29 +6,38 @@
 import { Box, Text } from 'ink'
 import PluginList from '../components/PluginList.js'
 import PluginDetail from '../components/PluginDetail.js'
-import type { Plugin } from '../types/index.js'
+import SearchInput from '../components/SearchInput.js'
+import type { Plugin, FocusZone } from '../types/index.js'
 
 interface InstalledTabProps {
   plugins: Plugin[]
   selectedIndex: number
+  searchQuery?: string
+  /** Current focus zone for keyboard navigation */
+  focusZone?: FocusZone
 }
 
 /**
  * Installed tab - manage installed plugins
+ * @param plugins - Filtered installed plugins (search already applied by parent)
+ * @param selectedIndex - Currently selected item index
+ * @param searchQuery - Current search query string
+ * @param focusZone - Current focus zone for keyboard navigation
  * @example
- * <InstalledTab plugins={installedPlugins} selectedIndex={0} />
+ * <InstalledTab plugins={installedPlugins} selectedIndex={0} searchQuery="" focusZone="list" />
  */
 export default function InstalledTab({
   plugins,
   selectedIndex,
+  searchQuery = '',
+  focusZone = 'list',
 }: InstalledTabProps) {
-  // Filter to installed plugins only
-  const installedPlugins = plugins.filter((p) => p.isInstalled)
-  const selectedPlugin = installedPlugins[selectedIndex] ?? null
+  // Plugins are already filtered by parent, use directly
+  const selectedPlugin = plugins[selectedIndex] ?? null
 
   // Count enabled/disabled
-  const enabledCount = installedPlugins.filter((p) => p.isEnabled).length
-  const disabledCount = installedPlugins.length - enabledCount
+  const enabledCount = plugins.filter((p) => p.isEnabled).length
+  const disabledCount = plugins.length - enabledCount
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -36,10 +45,7 @@ export default function InstalledTab({
       <Box marginBottom={1} gap={2}>
         <Text bold>
           Installed plugins (
-          {installedPlugins.length > 0
-            ? `${selectedIndex + 1}/${installedPlugins.length}`
-            : '0'}
-          )
+          {plugins.length > 0 ? `${selectedIndex + 1}/${plugins.length}` : '0'})
         </Text>
         <Box flexGrow={1} />
         <Box gap={2}>
@@ -48,23 +54,36 @@ export default function InstalledTab({
         </Box>
       </Box>
 
+      {/* Search bar */}
+      <Box marginBottom={1}>
+        <SearchInput
+          query={searchQuery}
+          isActive={focusZone === 'search'}
+          placeholder="Type to search installed plugins..."
+        />
+      </Box>
+
       {/* Two-column layout */}
       <Box flexGrow={1}>
         {/* Left panel: Plugin list */}
         <Box width="50%" flexDirection="column">
-          {installedPlugins.length === 0 ? (
+          {plugins.length === 0 ? (
             <Box padding={1} flexDirection="column">
-              <Text color="gray">No plugins installed</Text>
+              <Text color="gray">
+                {searchQuery ? 'No matching plugins' : 'No plugins installed'}
+              </Text>
               <Text dimColor>
-                Use the Discover tab or{' '}
-                <Text color="white">/plugin install</Text> in Claude Code
+                {searchQuery
+                  ? 'Try a different search term'
+                  : 'Use the Discover tab or /plugin install in Claude Code'}
               </Text>
             </Box>
           ) : (
             <PluginList
-              plugins={installedPlugins}
+              plugins={plugins}
               selectedIndex={selectedIndex}
               visibleCount={12}
+              isFocused={focusZone === 'list'}
             />
           )}
         </Box>

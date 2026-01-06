@@ -13,17 +13,20 @@ interface PluginListProps {
   selectedIndex: number
   /** Maximum visible items (for virtual scrolling) */
   visibleCount?: number
+  /** Whether the list has keyboard focus */
+  isFocused?: boolean
 }
 
 /**
  * Scrollable plugin list with selection
  * @example
- * <PluginList plugins={plugins} selectedIndex={0} visibleCount={15} />
+ * <PluginList plugins={plugins} selectedIndex={0} visibleCount={15} isFocused={true} />
  */
 export default function PluginList({
   plugins,
   selectedIndex,
   visibleCount = 15,
+  isFocused = true,
 }: PluginListProps) {
   if (plugins.length === 0) {
     return (
@@ -60,7 +63,13 @@ export default function PluginList({
         return (
           <Box key={plugin.id} paddingX={1}>
             <Box width={2}>
-              {isSelected ? <Text color="cyan">{'>'}</Text> : <Text> </Text>}
+              {isSelected && isFocused ? (
+                <Text color="cyan">{'>'}</Text>
+              ) : isSelected ? (
+                <Text color="gray">{'›'}</Text>
+              ) : (
+                <Text> </Text>
+              )}
             </Box>
             <Box width={2}>
               <StatusIcon
@@ -70,7 +79,16 @@ export default function PluginList({
             </Box>
             <Box flexGrow={1} flexDirection="column">
               <Box gap={1}>
-                <Text bold color={isSelected ? 'cyan' : 'white'}>
+                <Text
+                  bold
+                  color={
+                    isSelected && isFocused
+                      ? 'cyan'
+                      : isSelected
+                        ? 'gray'
+                        : 'white'
+                  }
+                >
                   {plugin.name}
                 </Text>
                 <Text dimColor>·</Text>

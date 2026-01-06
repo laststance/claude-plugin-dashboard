@@ -4,27 +4,64 @@
  */
 
 import { Box, Text } from 'ink'
+import type { FocusZone } from '../types/index.js'
 
 interface KeyHintsProps {
   /** Additional context-specific hints */
   extraHints?: Array<{ key: string; action: string }>
+  /** Current focus zone for context-aware hints */
+  focusZone?: FocusZone
+}
+
+/**
+ * Get base hints based on current focus zone
+ * @param focusZone - Current focus zone
+ * @returns Array of hint objects
+ */
+function getBaseHints(
+  focusZone: FocusZone,
+): Array<{ key: string; action: string }> {
+  switch (focusZone) {
+    case 'tabbar':
+      return [
+        { key: '←/→', action: 'switch tabs' },
+        { key: '↓', action: 'search/list' },
+        { key: 'Tab', action: 'next tab' },
+        { key: 'h', action: 'help' },
+        { key: 'q or ^C', action: 'quit' },
+      ]
+    case 'search':
+      return [
+        { key: '↑', action: 'tabs' },
+        { key: '↓/Enter', action: 'list' },
+        { key: 'ESC', action: 'clear/exit' },
+        { key: 'h', action: 'help' },
+        { key: 'q or ^C', action: 'quit' },
+      ]
+    case 'list':
+    default:
+      return [
+        { key: '↑/↓', action: 'navigate' },
+        { key: '↑(top)', action: 'search' },
+        { key: 'Space', action: 'toggle' },
+        { key: 'Tab', action: 'next tab' },
+        { key: 'h', action: 'help' },
+        { key: 'q or ^C', action: 'quit' },
+      ]
+  }
 }
 
 /**
  * Displays keyboard shortcut hints in the footer
  * @example
- * <KeyHints />
- * <KeyHints extraHints={[{ key: 'i', action: 'install' }]} />
+ * <KeyHints focusZone="list" />
+ * <KeyHints focusZone="search" extraHints={[{ key: 'i', action: 'install' }]} />
  */
-export default function KeyHints({ extraHints }: KeyHintsProps) {
-  const baseHints = [
-    { key: '←/→', action: 'tabs' },
-    { key: '↑/↓', action: 'navigate' },
-    { key: 'Space', action: 'toggle' },
-    { key: '/', action: 'search' },
-    { key: 'q', action: 'quit' },
-  ]
-
+export default function KeyHints({
+  extraHints,
+  focusZone = 'list',
+}: KeyHintsProps) {
+  const baseHints = getBaseHints(focusZone)
   const allHints = extraHints ? [...baseHints, ...extraHints] : baseHints
 
   return (

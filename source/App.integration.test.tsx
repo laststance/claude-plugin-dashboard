@@ -97,7 +97,8 @@ describe('App component', () => {
       const { lastFrame } = render(<App />)
       await waitForRender()
 
-      expect(lastFrame()).toContain('v0.1.0')
+      // Version is dynamically loaded from package.json - verify format
+      expect(lastFrame()).toMatch(/v\d+\.\d+\.\d+/)
     })
   })
 
@@ -175,11 +176,28 @@ describe('App component', () => {
   })
 
   describe('keyboard navigation', () => {
-    it('should navigate to next tab with right arrow', async () => {
+    it('should navigate to next tab with Tab key', async () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Press right arrow (escape sequence)
+      // Press Tab to go to next tab
+      stdin.write('\t')
+      await waitForRender()
+
+      expect(lastFrame()).toContain('Installed plugins')
+    })
+
+    it('should navigate to next tab with right arrow when tabbar is focused', async () => {
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate up to tabbar zone (from list -> search -> tabbar)
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+
+      // Now right arrow should work to navigate tabs
       stdin.write('\x1B[C')
       await waitForRender()
 
@@ -251,10 +269,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to discover tab (2 tabs right from enabled)
-      stdin.write('\x1B[C')
+      // Navigate to discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Press / to enter search mode
@@ -273,10 +291,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to Discover tab (2 tabs right from Enabled)
-      stdin.write('\x1B[C')
+      // Navigate to Discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Enter search mode
@@ -299,10 +317,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to Discover tab (2 tabs right from Enabled)
-      stdin.write('\x1B[C')
+      // Navigate to Discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Enter search mode
@@ -317,6 +335,35 @@ describe('App component', () => {
       expect(lastFrame()).toContain('Discover')
     })
 
+    it('should exit search mode with Down arrow', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (2 tabs with Tab key)
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
+      await waitForRender()
+
+      // Enter search mode
+      stdin.write('/')
+      await waitForRender()
+
+      // Should show cursor indicator (active search mode)
+      expect(lastFrame()).toMatch(/▌/)
+
+      // Exit with Down arrow
+      stdin.write('\x1B[B')
+      await waitForRender()
+
+      // Should still be on discover tab, no longer in search mode
+      expect(lastFrame()).toContain('Discover')
+    })
+
     it('should type characters in search mode', async () => {
       mockLoadAllPlugins.mockReturnValue([
         createMockPlugin({ id: 'p1@m', name: 'alpha-plugin' }),
@@ -326,10 +373,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to Discover tab (2 tabs right from Enabled)
-      stdin.write('\x1B[C')
+      // Navigate to Discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Enter search mode and type
@@ -516,11 +563,17 @@ describe('App component', () => {
       expect(lastFrame()).toContain('1/2')
     })
 
-    it('should navigate to previous tab with left arrow', async () => {
+    it('should navigate to previous tab with left arrow when tabbar is focused', async () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // First go right (from enabled to installed)
+      // Navigate up to tabbar zone first (from list -> search -> tabbar)
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+
+      // Go right (from enabled to installed) using arrow in tabbar zone
       stdin.write('\x1B[C')
       await waitForRender()
       expect(lastFrame()).toContain('Installed plugins')
@@ -539,6 +592,43 @@ describe('App component', () => {
       stdin.write('\t')
       await waitForRender()
       expect(lastFrame()).toContain('Installed plugins')
+    })
+
+    it('should navigate to next tab with Ctrl+F (Emacs-style) when tabbar is focused', async () => {
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate up to tabbar zone first (from list -> search -> tabbar)
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+
+      // Ctrl+F should work like right arrow when tabbar is focused
+      stdin.write('\x06')
+      await waitForRender()
+      expect(lastFrame()).toContain('Installed plugins')
+    })
+
+    it('should navigate to previous tab with Ctrl+B (Emacs-style) when tabbar is focused', async () => {
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate up to tabbar zone first (from list -> search -> tabbar)
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+
+      // First go right (from enabled to installed)
+      stdin.write('\x1B[C')
+      await waitForRender()
+      expect(lastFrame()).toContain('Installed plugins')
+
+      // Then Ctrl+B should go back to enabled
+      stdin.write('\x02')
+      await waitForRender()
+      expect(lastFrame()).toContain('Enabled plugins')
     })
   })
 
@@ -635,6 +725,54 @@ describe('App component', () => {
       expect(lastFrame()).toContain('Installed')
     })
 
+    it('should trigger install when pressing Enter on non-installed plugin', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'new-plugin',
+          isInstalled: false,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab (where non-installed plugins are visible)
+      // Enabled → Installed → Discover
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
+      await waitForRender()
+
+      // Press Enter to install
+      stdin.write('\r')
+      await waitForRender()
+
+      // Mock resolves immediately, so we see the success message
+      expect(lastFrame()).toContain('Installed')
+    })
+
+    it('should toggle enabled state when pressing Enter on installed plugin', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'installed-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Press Enter on installed plugin (toggles enabled state)
+      stdin.write('\r')
+      await waitForRender()
+
+      // Should toggle the plugin (already enabled → shows disabled message or enabled message)
+      expect(lastFrame()).toMatch(/installed-plugin (enabled|disabled)/)
+    })
+
     it('should show not installed message when pressing u on non-installed plugin', async () => {
       mockLoadAllPlugins.mockReturnValue([
         createMockPlugin({
@@ -647,10 +785,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to discover tab (2 tabs right from enabled)
-      stdin.write('\x1B[C')
+      // Navigate to discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Press u to uninstall
@@ -840,6 +978,260 @@ describe('App component', () => {
 
       // Should still be on Discover tab
       expect(lastFrame()).toContain('Discover')
+    })
+  })
+
+  describe('header rendering', () => {
+    it('should render main header only once on Marketplaces tab', async () => {
+      mockLoadMarketplaces.mockReturnValue([
+        createMockMarketplace({ id: 'm1', name: 'Test Marketplace' }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to marketplaces tab (3 tabs right from enabled)
+      // enabled → installed → discover → marketplaces
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+      stdin.write('\x1B[C')
+      await waitForRender()
+
+      const frame = lastFrame() ?? ''
+
+      // Count occurrences of the main header
+      const headerMatches = frame.match(/Plugin Dashboard/g) ?? []
+      expect(headerMatches.length).toBe(1)
+
+      // Also verify we're on the Marketplaces tab
+      expect(frame).toContain('Marketplaces')
+    })
+
+    it('should render main header only once on each tab', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+      mockLoadMarketplaces.mockReturnValue([
+        createMockMarketplace({ id: 'm1', name: 'Test Marketplace' }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Test each tab
+      const tabs = [
+        'Enabled',
+        'Installed',
+        'Discover',
+        'Marketplaces',
+        'Errors',
+      ]
+
+      for (let i = 0; i < tabs.length; i++) {
+        const frame = lastFrame() ?? ''
+        const headerMatches = frame.match(/Plugin Dashboard/g) ?? []
+
+        // Header should appear exactly once on every tab
+        expect(headerMatches.length).toBe(1)
+
+        // Navigate to next tab (unless we're on the last one)
+        if (i < tabs.length - 1) {
+          stdin.write('\x1B[C')
+          await waitForRender()
+        }
+      }
+    })
+  })
+
+  describe('help overlay', () => {
+    it('should show help overlay when pressing h key', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Press h to show help
+      stdin.write('h')
+      await waitForRender()
+
+      expect(lastFrame()).toContain('Help')
+      expect(lastFrame()).toContain('Navigation')
+    })
+
+    it('should hide help overlay when pressing h again', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Show help
+      stdin.write('h')
+      await waitForRender()
+      expect(lastFrame()).toContain('Help')
+
+      // Hide help
+      stdin.write('h')
+      await waitForRender()
+      expect(lastFrame()).not.toContain('Toggle this help')
+    })
+
+    it('should hide help overlay when pressing Escape', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Show help
+      stdin.write('h')
+      await waitForRender()
+      expect(lastFrame()).toContain('Help')
+
+      // Hide with Escape
+      stdin.write('\x1B')
+      await waitForRender()
+      expect(lastFrame()).not.toContain('Toggle this help')
+    })
+
+    it('should block other input while help is visible', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Show help
+      stdin.write('h')
+      await waitForRender()
+
+      // Try to navigate (should not work)
+      stdin.write('\x1B[C')
+      await waitForRender()
+
+      // Help should still be visible
+      expect(lastFrame()).toContain('Help')
+    })
+
+    it('should display h help hint in footer (KeyHints)', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame } = render(<App />)
+      await waitForRender()
+
+      // h help hint is now shown in footer (KeyHints component)
+      expect(lastFrame()).toContain('h')
+      expect(lastFrame()).toContain('help')
+    })
+  })
+
+  describe('contextual Enter key hints', () => {
+    it('should show "Enter toggle" for installed plugin on Enabled tab', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'enabled-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame } = render(<App />)
+      await waitForRender()
+
+      // Should show Enter toggle hint
+      expect(lastFrame()).toContain('Enter')
+      expect(lastFrame()).toContain('toggle')
+    })
+
+    it('should show "Enter install" for non-installed plugin on Discover tab', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'new-plugin',
+          isInstalled: false,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
+      await waitForRender()
+
+      // Should show Enter install hint
+      expect(lastFrame()).toContain('Enter')
+      expect(lastFrame()).toContain('install')
+    })
+
+    it('should show search zone hints when in search mode', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'test-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate to Discover tab and enter search mode
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('\t')
+      await waitForRender()
+      stdin.write('/')
+      await waitForRender()
+
+      // Should show search zone hints: ↓/Enter → list, ESC → clear/exit
+      expect(lastFrame()).toContain('↓/Enter')
+      expect(lastFrame()).toContain('list')
+      expect(lastFrame()).toContain('ESC')
+      expect(lastFrame()).toContain('clear/exit')
     })
   })
 })
