@@ -1,6 +1,6 @@
 {
   "name": "@laststance/claude-plugin-dashboard",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Interactive CLI dashboard to manage Claude Code plugins",
   "license": "MIT",
   "author": "Ryota Murakami <ryota.murakami@laststance.io> (https://github.com/ryota-murakami)",

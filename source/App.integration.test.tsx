@@ -72,8 +72,10 @@ function createMockMarketplace(
 
 /**
  * Helper to wait for next render tick
+ * Longer timeout for CI stability
  */
-const waitForRender = () => new Promise((resolve) => setTimeout(resolve, 10))
+const waitForRender = () =>
+  new Promise((resolve) => setTimeout(resolve, process.env.CI ? 50 : 10))
 
 describe('App component', () => {
   const mockLoadAllPlugins = vi.mocked(pluginService.loadAllPlugins)
