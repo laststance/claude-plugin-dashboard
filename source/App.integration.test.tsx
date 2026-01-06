@@ -97,7 +97,8 @@ describe('App component', () => {
       const { lastFrame } = render(<App />)
       await waitForRender()
 
-      expect(lastFrame()).toContain('v0.1.0')
+      // Version is dynamically loaded from package.json
+      expect(lastFrame()).toContain('v0.1.1')
     })
   })
 
@@ -175,11 +176,28 @@ describe('App component', () => {
   })
 
   describe('keyboard navigation', () => {
-    it('should navigate to next tab with right arrow', async () => {
+    it('should navigate to next tab with Tab key', async () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Press right arrow (escape sequence)
+      // Press Tab to go to next tab
+      stdin.write('\t')
+      await waitForRender()
+
+      expect(lastFrame()).toContain('Installed plugins')
+    })
+
+    it('should navigate to next tab with right arrow when tabbar is focused', async () => {
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate up to tabbar zone (from list -> search -> tabbar)
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+
+      // Now right arrow should work to navigate tabs
       stdin.write('\x1B[C')
       await waitForRender()
 
@@ -251,10 +269,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to discover tab (2 tabs right from enabled)
-      stdin.write('\x1B[C')
+      // Navigate to discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Press / to enter search mode
@@ -273,10 +291,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to Discover tab (2 tabs right from Enabled)
-      stdin.write('\x1B[C')
+      // Navigate to Discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Enter search mode
@@ -299,10 +317,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to Discover tab (2 tabs right from Enabled)
-      stdin.write('\x1B[C')
+      // Navigate to Discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Enter search mode
@@ -325,10 +343,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to Discover tab (2 tabs right from Enabled)
-      stdin.write('\x1B[C')
+      // Navigate to Discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Enter search mode
@@ -355,10 +373,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to Discover tab (2 tabs right from Enabled)
-      stdin.write('\x1B[C')
+      // Navigate to Discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Enter search mode and type
@@ -545,11 +563,17 @@ describe('App component', () => {
       expect(lastFrame()).toContain('1/2')
     })
 
-    it('should navigate to previous tab with left arrow', async () => {
+    it('should navigate to previous tab with left arrow when tabbar is focused', async () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // First go right (from enabled to installed)
+      // Navigate up to tabbar zone first (from list -> search -> tabbar)
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+
+      // Go right (from enabled to installed) using arrow in tabbar zone
       stdin.write('\x1B[C')
       await waitForRender()
       expect(lastFrame()).toContain('Installed plugins')
@@ -570,18 +594,30 @@ describe('App component', () => {
       expect(lastFrame()).toContain('Installed plugins')
     })
 
-    it('should navigate to next tab with Ctrl+F (Emacs-style)', async () => {
+    it('should navigate to next tab with Ctrl+F (Emacs-style) when tabbar is focused', async () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Ctrl+F should work like right arrow
+      // Navigate up to tabbar zone first (from list -> search -> tabbar)
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+
+      // Ctrl+F should work like right arrow when tabbar is focused
       stdin.write('\x06')
       await waitForRender()
       expect(lastFrame()).toContain('Installed plugins')
     })
 
-    it('should navigate to previous tab with Ctrl+B (Emacs-style)', async () => {
+    it('should navigate to previous tab with Ctrl+B (Emacs-style) when tabbar is focused', async () => {
       const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Navigate up to tabbar zone first (from list -> search -> tabbar)
+      stdin.write('\x1B[A') // up arrow
+      await waitForRender()
+      stdin.write('\x1B[A') // up arrow
       await waitForRender()
 
       // First go right (from enabled to installed)
@@ -749,10 +785,10 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<App />)
       await waitForRender()
 
-      // Navigate to discover tab (2 tabs right from enabled)
-      stdin.write('\x1B[C')
+      // Navigate to discover tab (2 tabs with Tab key)
+      stdin.write('\t')
       await waitForRender()
-      stdin.write('\x1B[C')
+      stdin.write('\t')
       await waitForRender()
 
       // Press u to uninstall
@@ -1109,7 +1145,7 @@ describe('App component', () => {
       expect(lastFrame()).toContain('Help')
     })
 
-    it('should display h help hint in header', async () => {
+    it('should display h help hint in footer (KeyHints)', async () => {
       mockLoadAllPlugins.mockReturnValue([
         createMockPlugin({
           id: 'p1@m',
@@ -1122,6 +1158,8 @@ describe('App component', () => {
       const { lastFrame } = render(<App />)
       await waitForRender()
 
+      // h help hint is now shown in footer (KeyHints component)
+      expect(lastFrame()).toContain('h')
       expect(lastFrame()).toContain('help')
     })
   })
@@ -1168,7 +1206,7 @@ describe('App component', () => {
       expect(lastFrame()).toContain('install')
     })
 
-    it('should show "Enter exit search" when in search mode', async () => {
+    it('should show search zone hints when in search mode', async () => {
       mockLoadAllPlugins.mockReturnValue([
         createMockPlugin({
           id: 'p1@m',
@@ -1189,9 +1227,11 @@ describe('App component', () => {
       stdin.write('/')
       await waitForRender()
 
-      // Should show Enter exit search hint
-      expect(lastFrame()).toContain('Enter')
-      expect(lastFrame()).toContain('exit search')
+      // Should show search zone hints: ↓/Enter → list, ESC → clear/exit
+      expect(lastFrame()).toContain('↓/Enter')
+      expect(lastFrame()).toContain('list')
+      expect(lastFrame()).toContain('ESC')
+      expect(lastFrame()).toContain('clear/exit')
     })
   })
 })

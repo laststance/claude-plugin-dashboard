@@ -7,13 +7,14 @@ import { Box, Text } from 'ink'
 import PluginList from '../components/PluginList.js'
 import PluginDetail from '../components/PluginDetail.js'
 import SearchInput from '../components/SearchInput.js'
-import type { Plugin } from '../types/index.js'
+import type { Plugin, FocusZone } from '../types/index.js'
 
 interface InstalledTabProps {
   plugins: Plugin[]
   selectedIndex: number
   searchQuery?: string
-  isSearchMode?: boolean
+  /** Current focus zone for keyboard navigation */
+  focusZone?: FocusZone
 }
 
 /**
@@ -21,15 +22,15 @@ interface InstalledTabProps {
  * @param plugins - Filtered installed plugins (search already applied by parent)
  * @param selectedIndex - Currently selected item index
  * @param searchQuery - Current search query string
- * @param isSearchMode - Whether search input is active
+ * @param focusZone - Current focus zone for keyboard navigation
  * @example
- * <InstalledTab plugins={installedPlugins} selectedIndex={0} searchQuery="" isSearchMode={false} />
+ * <InstalledTab plugins={installedPlugins} selectedIndex={0} searchQuery="" focusZone="list" />
  */
 export default function InstalledTab({
   plugins,
   selectedIndex,
   searchQuery = '',
-  isSearchMode = false,
+  focusZone = 'list',
 }: InstalledTabProps) {
   // Plugins are already filtered by parent, use directly
   const selectedPlugin = plugins[selectedIndex] ?? null
@@ -57,7 +58,7 @@ export default function InstalledTab({
       <Box marginBottom={1}>
         <SearchInput
           query={searchQuery}
-          isActive={isSearchMode}
+          isActive={focusZone === 'search'}
           placeholder="Type to search installed plugins..."
         />
       </Box>
@@ -82,6 +83,7 @@ export default function InstalledTab({
               plugins={plugins}
               selectedIndex={selectedIndex}
               visibleCount={12}
+              isFocused={focusZone === 'list'}
             />
           )}
         </Box>

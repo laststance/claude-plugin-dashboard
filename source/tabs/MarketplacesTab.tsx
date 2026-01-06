@@ -7,13 +7,14 @@ import { Box, Text } from 'ink'
 import MarketplaceList from '../components/MarketplaceList.js'
 import MarketplaceDetail from '../components/MarketplaceDetail.js'
 import SearchInput from '../components/SearchInput.js'
-import type { Marketplace } from '../types/index.js'
+import type { Marketplace, FocusZone } from '../types/index.js'
 
 interface MarketplacesTabProps {
   marketplaces: Marketplace[]
   selectedIndex: number
   searchQuery?: string
-  isSearchMode?: boolean
+  /** Current focus zone for keyboard navigation */
+  focusZone?: FocusZone
 }
 
 /**
@@ -21,15 +22,15 @@ interface MarketplacesTabProps {
  * @param marketplaces - Filtered marketplaces (search already applied by parent)
  * @param selectedIndex - Currently selected item index
  * @param searchQuery - Current search query string
- * @param isSearchMode - Whether search input is active
+ * @param focusZone - Current focus zone for keyboard navigation
  * @example
- * <MarketplacesTab marketplaces={marketplaces} selectedIndex={0} searchQuery="" isSearchMode={false} />
+ * <MarketplacesTab marketplaces={marketplaces} selectedIndex={0} searchQuery="" focusZone="list" />
  */
 export default function MarketplacesTab({
   marketplaces,
   selectedIndex,
   searchQuery = '',
-  isSearchMode = false,
+  focusZone = 'list',
 }: MarketplacesTabProps) {
   const selectedMarketplace = marketplaces[selectedIndex] ?? null
 
@@ -58,7 +59,7 @@ export default function MarketplacesTab({
       <Box marginBottom={1}>
         <SearchInput
           query={searchQuery}
-          isActive={isSearchMode}
+          isActive={focusZone === 'search'}
           placeholder="Type to search marketplaces..."
         />
       </Box>
@@ -84,6 +85,7 @@ export default function MarketplacesTab({
             <MarketplaceList
               marketplaces={marketplaces}
               selectedIndex={selectedIndex}
+              isFocused={focusZone === 'list'}
             />
           )}
         </Box>

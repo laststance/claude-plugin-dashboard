@@ -8,7 +8,7 @@ import PluginList from '../components/PluginList.js'
 import PluginDetail from '../components/PluginDetail.js'
 import SearchInput from '../components/SearchInput.js'
 import SortDropdown from '../components/SortDropdown.js'
-import type { Plugin, AppState } from '../types/index.js'
+import type { Plugin, AppState, FocusZone } from '../types/index.js'
 
 interface DiscoverTabProps {
   plugins: Plugin[]
@@ -16,7 +16,8 @@ interface DiscoverTabProps {
   searchQuery: string
   sortBy: AppState['sortBy']
   sortOrder: AppState['sortOrder']
-  isSearchMode?: boolean
+  /** Current focus zone for keyboard navigation */
+  focusZone?: FocusZone
 }
 
 /**
@@ -28,6 +29,7 @@ interface DiscoverTabProps {
  *   searchQuery={state.searchQuery}
  *   sortBy={state.sortBy}
  *   sortOrder={state.sortOrder}
+ *   focusZone="list"
  * />
  */
 export default function DiscoverTab({
@@ -36,7 +38,7 @@ export default function DiscoverTab({
   searchQuery,
   sortBy,
   sortOrder,
-  isSearchMode = false,
+  focusZone = 'list',
 }: DiscoverTabProps) {
   const selectedPlugin = plugins[selectedIndex] ?? null
 
@@ -56,7 +58,7 @@ export default function DiscoverTab({
       <Box marginBottom={1}>
         <SearchInput
           query={searchQuery}
-          isActive={isSearchMode}
+          isActive={focusZone === 'search'}
           placeholder="Type to search..."
         />
       </Box>
@@ -69,6 +71,7 @@ export default function DiscoverTab({
             plugins={plugins}
             selectedIndex={selectedIndex}
             visibleCount={12}
+            isFocused={focusZone === 'list'}
           />
         </Box>
 

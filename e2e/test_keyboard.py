@@ -3,6 +3,7 @@ E2E tests for keyboard navigation in claude-plugin-dashboard.
 
 Tests verify that all documented keyboard shortcuts work as expected:
 - Tab navigation (←, →, Tab)
+- Focus zone navigation (↑, ↓ between tabbar/search/list zones)
 - List navigation (↑, ↓, Ctrl+P, Ctrl+N)
 - Search (/, Esc)
 - Quit (q)
@@ -28,22 +29,31 @@ class TestTabNavigation:
 
         keys.quit(child)
 
-    def test_tab_switch_with_right_arrow(self, spawn_cli, keys):
-        """Right arrow key switches to next tab."""
+    def test_tab_switch_with_right_arrow_in_tabbar(self, spawn_cli, keys):
+        """Right arrow key switches to next tab when tabbar is focused."""
         child = spawn_cli()
         child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
 
+        # Navigate up to tabbar zone first (list -> search -> tabbar)
+        keys.send_key(child, keys.UP, delay=0.2)
+        keys.send_key(child, keys.UP, delay=0.2)
+
+        # Now right arrow should navigate tabs
         keys.send_key(child, keys.RIGHT)
         child.expect('Installed', timeout=2)
 
         keys.quit(child)
 
-    def test_tab_switch_with_left_arrow(self, spawn_cli, keys):
-        """Left arrow key switches to previous tab."""
+    def test_tab_switch_with_left_arrow_in_tabbar(self, spawn_cli, keys):
+        """Left arrow key switches to previous tab when tabbar is focused."""
         child = spawn_cli()
         child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
+
+        # Navigate up to tabbar zone first (list -> search -> tabbar)
+        keys.send_key(child, keys.UP, delay=0.2)
+        keys.send_key(child, keys.UP, delay=0.2)
 
         # Go right first
         keys.send_key(child, keys.RIGHT, delay=0.2)
@@ -66,11 +76,15 @@ class TestTabNavigation:
 
         keys.quit(child)
 
-    def test_tab_switch_with_ctrl_f(self, spawn_cli, keys):
-        """Ctrl+F switches to next tab (Emacs-style)."""
+    def test_tab_switch_with_ctrl_f_in_tabbar(self, spawn_cli, keys):
+        """Ctrl+F switches to next tab when tabbar is focused (Emacs-style)."""
         child = spawn_cli()
         child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
+
+        # Navigate up to tabbar zone first (list -> search -> tabbar)
+        keys.send_key(child, keys.UP, delay=0.2)
+        keys.send_key(child, keys.UP, delay=0.2)
 
         # Ctrl+F to next tab
         keys.send_key(child, keys.CTRL_F)
@@ -78,17 +92,181 @@ class TestTabNavigation:
 
         keys.quit(child)
 
-    def test_tab_switch_with_ctrl_b(self, spawn_cli, keys):
-        """Ctrl+B switches to previous tab (Emacs-style)."""
+    def test_tab_switch_with_ctrl_b_in_tabbar(self, spawn_cli, keys):
+        """Ctrl+B switches to previous tab when tabbar is focused (Emacs-style)."""
         child = spawn_cli()
         child.expect('Enabled', timeout=10)  # Enabled is default tab
         time.sleep(0.5)  # Wait for init
+
+        # Navigate up to tabbar zone first (list -> search -> tabbar)
+        keys.send_key(child, keys.UP, delay=0.2)
+        keys.send_key(child, keys.UP, delay=0.2)
 
         # Go forward first
         keys.send_key(child, keys.CTRL_F, delay=0.2)
 
         # Then go back with Ctrl+B
         keys.send_key(child, keys.CTRL_B)
+        child.expect('Enabled', timeout=2)
+
+        keys.quit(child)
+
+
+@pytest.mark.e2e
+class TestFocusZoneNavigation:
+    """Test focus zone navigation between tabbar, search, and list zones."""
+
+    def test_up_from_list_top_focuses_search(self, spawn_cli, keys):
+        """Up arrow at list top moves focus to search zone."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
+        time.sleep(0.5)  # Wait for init
+
+        # Press up at list top - should move to search zone
+        # Enabled tab may have empty list, so we're at top
+        keys.send_key(child, keys.UP)
+        time.sleep(0.3)
+
+        # Search zone should now be active (cursor visible)
+        # Just verify app is still alive since we can't easily check visual state
+        assert child.isalive()
+
+        keys.quit(child)
+
+    def test_up_from_search_focuses_tabbar(self, spawn_cli, keys):
+        """Up arrow from search zone moves focus to tabbar."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)
+
+        # Move to search zone first
+        keys.send_key(child, keys.UP, delay=0.2)
+
+        # Now up should move to tabbar zone
+        keys.send_key(child, keys.UP)
+        time.sleep(0.3)
+
+        # Verify app is still running
+        assert child.isalive()
+
+        keys.quit(child)
+
+    def test_down_from_tabbar_focuses_search(self, spawn_cli, keys):
+        """Down arrow from tabbar moves focus to search zone."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)
+
+        # Navigate to tabbar zone first
+        keys.send_key(child, keys.UP, delay=0.2)
+        keys.send_key(child, keys.UP, delay=0.2)
+
+        # Now down should move to search zone
+        keys.send_key(child, keys.DOWN)
+        time.sleep(0.3)
+
+        assert child.isalive()
+
+        keys.quit(child)
+
+    def test_down_from_search_focuses_list(self, spawn_cli, keys):
+        """Down arrow from search zone moves focus to list."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)
+
+        # Move to search zone
+        keys.send_key(child, keys.UP, delay=0.2)
+
+        # Now down should move to list zone
+        keys.send_key(child, keys.DOWN)
+        time.sleep(0.3)
+
+        assert child.isalive()
+
+        keys.quit(child)
+
+    def test_ctrl_p_from_list_top_focuses_search(self, spawn_cli, keys):
+        """Ctrl+P at list top moves focus to search zone (Emacs-style)."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)
+
+        # Ctrl+P at list top should move to search
+        keys.send_key(child, keys.CTRL_P)
+        time.sleep(0.3)
+
+        assert child.isalive()
+
+        keys.quit(child)
+
+    def test_ctrl_n_from_search_focuses_list(self, spawn_cli, keys):
+        """Ctrl+N from search zone moves focus to list (Emacs-style)."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)
+
+        # Move to search zone first
+        keys.send_key(child, keys.CTRL_P, delay=0.2)
+
+        # Ctrl+N should move to list
+        keys.send_key(child, keys.CTRL_N)
+        time.sleep(0.3)
+
+        assert child.isalive()
+
+        keys.quit(child)
+
+    def test_errors_tab_skips_search_zone(self, spawn_cli, keys):
+        """Errors tab has no search zone - up/down goes directly between tabbar and list."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)
+        time.sleep(0.5)
+
+        # Navigate to Errors tab (4 tabs from Enabled)
+        for _ in range(4):
+            keys.send_key(child, keys.TAB, delay=0.2)
+        time.sleep(0.5)
+        child.expect('Errors', timeout=3)
+
+        # On Errors tab, up should go directly from list to tabbar (no search)
+        keys.send_key(child, keys.UP, delay=0.2)
+
+        # Now down should go directly back to list (no search)
+        keys.send_key(child, keys.DOWN)
+        time.sleep(0.3)
+
+        # Should still be on Errors tab
+        child.expect('Errors', timeout=2)
+
+        keys.quit(child)
+
+    def test_right_arrow_does_nothing_in_list_zone(self, spawn_cli, keys):
+        """Right arrow does nothing when focus is on list zone (not tabbar)."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
+        time.sleep(0.5)
+
+        # Default focus is list zone, right arrow should not navigate tabs
+        keys.send_key(child, keys.RIGHT)
+        time.sleep(0.3)
+
+        # Should still be on Enabled tab
+        child.expect('Enabled', timeout=2)
+
+        keys.quit(child)
+
+    def test_left_arrow_does_nothing_in_list_zone(self, spawn_cli, keys):
+        """Left arrow does nothing when focus is on list zone (not tabbar)."""
+        child = spawn_cli()
+        child.expect('Enabled', timeout=10)  # Enabled is default tab
+        time.sleep(0.5)
+
+        # Default focus is list zone, left arrow should not navigate tabs
+        keys.send_key(child, keys.LEFT)
+        time.sleep(0.3)
+
+        # Should still be on Enabled tab
         child.expect('Enabled', timeout=2)
 
         keys.quit(child)

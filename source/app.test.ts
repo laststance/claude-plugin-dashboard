@@ -40,6 +40,7 @@ import {
   appReducer,
   getItemsForTab,
   getFilteredPlugins,
+  getAvailableZones,
   initialState,
 } from './app.js'
 
@@ -93,6 +94,7 @@ function createMockError(overrides: Partial<PluginError> = {}): PluginError {
 describe('initialState', () => {
   it('should have correct default values', () => {
     expect(initialState.activeTab).toBe('enabled')
+    expect(initialState.focusZone).toBe('list')
     expect(initialState.plugins).toEqual([])
     expect(initialState.marketplaces).toEqual([])
     expect(initialState.errors).toEqual([])
@@ -116,12 +118,13 @@ describe('appReducer', () => {
   })
 
   describe('tab navigation', () => {
-    it('SET_TAB changes active tab and resets state', () => {
+    it('SET_TAB changes active tab and resets state including focusZone', () => {
       const state: AppState = {
         ...initialState,
         selectedIndex: 5,
         searchQuery: 'test',
         message: 'some message',
+        focusZone: 'search',
       }
 
       const result = appReducer(state, {
@@ -133,18 +136,29 @@ describe('appReducer', () => {
       expect(result.selectedIndex).toBe(0)
       expect(result.searchQuery).toBe('')
       expect(result.message).toBe(null)
+      expect(result.focusZone).toBe('list')
     })
 
-    it('NEXT_TAB cycles to next tab', () => {
-      const state: AppState = { ...initialState, activeTab: 'enabled' }
+    it('NEXT_TAB cycles to next tab and resets focusZone', () => {
+      const state: AppState = {
+        ...initialState,
+        activeTab: 'enabled',
+        focusZone: 'tabbar',
+      }
       const result = appReducer(state, { type: 'NEXT_TAB' })
       expect(result.activeTab).toBe('installed')
+      expect(result.focusZone).toBe('list')
     })
 
-    it('PREV_TAB cycles to previous tab', () => {
-      const state: AppState = { ...initialState, activeTab: 'installed' }
+    it('PREV_TAB cycles to previous tab and resets focusZone', () => {
+      const state: AppState = {
+        ...initialState,
+        activeTab: 'installed',
+        focusZone: 'search',
+      }
       const result = appReducer(state, { type: 'PREV_TAB' })
       expect(result.activeTab).toBe('enabled')
+      expect(result.focusZone).toBe('list')
     })
   })
 
@@ -586,5 +600,81 @@ describe('getFilteredPlugins', () => {
     // sortPlugins is mocked to return plugins as-is
     const result = getFilteredPlugins(state)
     expect(result).toHaveLength(2)
+  })
+})
+
+describe('focus zone navigation', () => {
+  describe('SET_FOCUS_ZONE', () => {
+    it('updates focusZone to tabbar', () => {
+      const state: AppState = { ...initialState, focusZone: 'list' }
+      const result = appReducer(state, {
+        type: 'SET_FOCUS_ZONE',
+        payload: 'tabbar',
+      })
+      expect(result.focusZone).toBe('tabbar')
+    })
+
+    it('updates focusZone to search', () => {
+      const state: AppState = { ...initialState, focusZone: 'list' }
+      const result = appReducer(state, {
+        type: 'SET_FOCUS_ZONE',
+        payload: 'search',
+      })
+      expect(result.focusZone).toBe('search')
+    })
+
+    it('updates focusZone to list', () => {
+      const state: AppState = { ...initialState, focusZone: 'tabbar' }
+      const result = appReducer(state, {
+        type: 'SET_FOCUS_ZONE',
+        payload: 'list',
+      })
+      expect(result.focusZone).toBe('list')
+    })
+
+    it('preserves other state when changing focusZone', () => {
+      const state: AppState = {
+        ...initialState,
+        focusZone: 'list',
+        searchQuery: 'test',
+        selectedIndex: 5,
+      }
+      const result = appReducer(state, {
+        type: 'SET_FOCUS_ZONE',
+        payload: 'search',
+      })
+
+      expect(result.focusZone).toBe('search')
+      expect(result.searchQuery).toBe('test')
+      expect(result.selectedIndex).toBe(5)
+    })
+  })
+})
+
+describe('getAvailableZones', () => {
+  it('returns all zones for enabled tab', () => {
+    const zones = getAvailableZones('enabled')
+    expect(zones).toEqual(['tabbar', 'search', 'list'])
+  })
+
+  it('returns all zones for installed tab', () => {
+    const zones = getAvailableZones('installed')
+    expect(zones).toEqual(['tabbar', 'search', 'list'])
+  })
+
+  it('returns all zones for discover tab', () => {
+    const zones = getAvailableZones('discover')
+    expect(zones).toEqual(['tabbar', 'search', 'list'])
+  })
+
+  it('returns all zones for marketplaces tab', () => {
+    const zones = getAvailableZones('marketplaces')
+    expect(zones).toEqual(['tabbar', 'search', 'list'])
+  })
+
+  it('excludes search zone for errors tab', () => {
+    const zones = getAvailableZones('errors')
+    expect(zones).toEqual(['tabbar', 'list'])
+    expect(zones).not.toContain('search')
   })
 })

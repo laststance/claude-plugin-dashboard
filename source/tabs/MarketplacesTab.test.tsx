@@ -7,7 +7,7 @@ import React from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'ink-testing-library'
 import MarketplacesTab from './MarketplacesTab.js'
-import type { Marketplace } from '../types/index.js'
+import type { Marketplace, FocusZone } from '../types/index.js'
 
 /**
  * Creates mock marketplace data for testing
@@ -31,7 +31,7 @@ describe('MarketplacesTab', () => {
     marketplaces: [] as Marketplace[],
     selectedIndex: 0,
     searchQuery: '',
-    isSearchMode: false,
+    focusZone: 'list' as FocusZone,
   }
 
   describe('empty state', () => {
@@ -78,7 +78,7 @@ describe('MarketplacesTab', () => {
 
     it('should highlight search bar when in search mode', () => {
       const { lastFrame } = render(
-        <MarketplacesTab {...defaultProps} isSearchMode={true} />,
+        <MarketplacesTab {...defaultProps} focusZone="search" />,
       )
 
       // Search mode shows cursor

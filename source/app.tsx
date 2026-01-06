@@ -3,7 +3,7 @@
  * Interactive TUI to browse and manage Claude Code plugins
  */
 
-import { useState, useEffect, useReducer } from 'react'
+import { useEffect, useReducer } from 'react'
 import { Box, Text, useInput, useApp } from 'ink'
 import TabBar, { getNextTab } from './components/TabBar.js'
 import KeyHints from './components/KeyHints.js'
@@ -26,13 +26,15 @@ import {
 } from './services/pluginActionsService.js'
 import ConfirmDialog from './components/ConfirmDialog.js'
 import HelpOverlay from './components/HelpOverlay.js'
-import type { AppState, Action, Plugin } from './types/index.js'
+import type { AppState, Action, Plugin, FocusZone } from './types/index.js'
+import packageJson from '../package.json' with { type: 'json' }
 
 /**
  * Initial application state
  */
 export const initialState: AppState = {
   activeTab: 'enabled',
+  focusZone: 'list',
   plugins: [],
   marketplaces: [],
   errors: [],
@@ -50,6 +52,21 @@ export const initialState: AppState = {
 }
 
 /**
+ * Get available focus zones for the current tab
+ * Errors tab has no search zone since it doesn't support filtering
+ * @param activeTab - The currently active tab
+ * @returns Array of available focus zones in navigation order
+ */
+export function getAvailableZones(
+  activeTab: AppState['activeTab'],
+): FocusZone[] {
+  if (activeTab === 'errors') {
+    return ['tabbar', 'list']
+  }
+  return ['tabbar', 'search', 'list']
+}
+
+/**
  * State reducer for application state management
  */
 export function appReducer(state: AppState, action: Action): AppState {
@@ -58,6 +75,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         activeTab: action.payload,
+        focusZone: 'list',
         selectedIndex: 0,
         searchQuery: '',
         message: null,
@@ -67,6 +85,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         activeTab: getNextTab(state.activeTab, 'next'),
+        focusZone: 'list',
         selectedIndex: 0,
         searchQuery: '',
         message: null,
@@ -76,9 +95,16 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         activeTab: getNextTab(state.activeTab, 'prev'),
+        focusZone: 'list',
         selectedIndex: 0,
         searchQuery: '',
         message: null,
+      }
+
+    case 'SET_FOCUS_ZONE':
+      return {
+        ...state,
+        focusZone: action.payload,
       }
 
     case 'SET_PLUGINS':
@@ -272,7 +298,6 @@ export function getFilteredPlugins(state: AppState): Plugin[] {
 export default function App() {
   const { exit } = useApp()
   const [state, dispatch] = useReducer(appReducer, initialState)
-  const [isSearchMode, setIsSearchMode] = useState(false)
 
   // Load data on mount
   useEffect(() => {
@@ -357,6 +382,12 @@ export default function App() {
       return
     }
 
+    // Exit (q or Ctrl+C) - Global handler, works in all focus zones
+    if (input === 'q' || (key.ctrl && input === 'c')) {
+      exit()
+      return
+    }
+
     // Toggle help (h key)
     if (input === 'h') {
       dispatch({ type: 'TOGGLE_HELP' })
@@ -378,10 +409,21 @@ export default function App() {
       return
     }
 
-    // Search mode input
-    if (isSearchMode) {
-      if (key.escape || key.return || key.downArrow) {
-        setIsSearchMode(false)
+    // Search mode input (when focusZone is 'search')
+    if (state.focusZone === 'search') {
+      // Up arrow: move focus to tabbar
+      if (key.upArrow || (key.ctrl && input === 'p')) {
+        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        return
+      }
+      // Down arrow, Enter, or Escape: move focus to list
+      if (
+        key.escape ||
+        key.return ||
+        key.downArrow ||
+        (key.ctrl && input === 'n')
+      ) {
+        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'list' })
         return
       }
       if (key.backspace || key.delete) {
@@ -401,49 +443,66 @@ export default function App() {
       return
     }
 
-    // Emacs-style navigation (Ctrl+P / Ctrl+N for vertical, Ctrl+B / Ctrl+F for horizontal)
-    if (key.ctrl && input === 'p') {
-      dispatch({ type: 'MOVE_SELECTION', payload: 'up' })
-      return
-    }
-    if (key.ctrl && input === 'n') {
-      dispatch({ type: 'MOVE_SELECTION', payload: 'down' })
-      return
-    }
-    if (key.ctrl && input === 'b') {
-      dispatch({ type: 'PREV_TAB' })
-      return
-    }
-    if (key.ctrl && input === 'f') {
-      dispatch({ type: 'NEXT_TAB' })
+    // TabBar focus zone navigation
+    if (state.focusZone === 'tabbar') {
+      // Down arrow: move to search (or list if no search)
+      if (key.downArrow || (key.ctrl && input === 'n')) {
+        const zones = getAvailableZones(state.activeTab)
+        dispatch({
+          type: 'SET_FOCUS_ZONE',
+          payload: zones.includes('search') ? 'search' : 'list',
+        })
+        return
+      }
+      // Left/Right arrows and Ctrl+B/F: tab switching (only in tabbar)
+      // Keep focus on tabbar after navigation
+      if (key.leftArrow || (key.ctrl && input === 'b')) {
+        dispatch({ type: 'PREV_TAB' })
+        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        return
+      }
+      if (key.rightArrow || (key.ctrl && input === 'f')) {
+        dispatch({ type: 'NEXT_TAB' })
+        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        return
+      }
+      // Tab key: next tab (resets focus to list)
+      if (key.tab) {
+        dispatch({ type: 'NEXT_TAB' })
+        return
+      }
       return
     }
 
-    // Tab navigation
-    if (key.leftArrow) {
-      dispatch({ type: 'PREV_TAB' })
+    // List focus zone navigation (default zone)
+    // Up arrow: move up in list or focus search/tabbar at top
+    if (key.upArrow || (key.ctrl && input === 'p')) {
+      if (state.selectedIndex === 0) {
+        // At top of list: move focus to search (or tabbar if no search)
+        const zones = getAvailableZones(state.activeTab)
+        dispatch({
+          type: 'SET_FOCUS_ZONE',
+          payload: zones.includes('search') ? 'search' : 'tabbar',
+        })
+      } else {
+        dispatch({ type: 'MOVE_SELECTION', payload: 'up' })
+      }
       return
     }
-    if (key.rightArrow) {
-      dispatch({ type: 'NEXT_TAB' })
+
+    // Down arrow: move down in list
+    if (key.downArrow || (key.ctrl && input === 'n')) {
+      dispatch({ type: 'MOVE_SELECTION', payload: 'down' })
       return
     }
+
+    // Tab key: next tab (from list zone)
     if (key.tab) {
       dispatch({ type: 'NEXT_TAB' })
       return
     }
 
-    // List navigation
-    if (key.upArrow) {
-      dispatch({ type: 'MOVE_SELECTION', payload: 'up' })
-      return
-    }
-    if (key.downArrow) {
-      dispatch({ type: 'MOVE_SELECTION', payload: 'down' })
-      return
-    }
-
-    // Enter search mode (on supported tabs)
+    // Enter search mode (/ key on supported tabs)
     const searchEnabledTabs = [
       'enabled',
       'installed',
@@ -451,7 +510,7 @@ export default function App() {
       'marketplaces',
     ]
     if (input === '/' && searchEnabledTabs.includes(state.activeTab)) {
-      setIsSearchMode(true)
+      dispatch({ type: 'SET_FOCUS_ZONE', payload: 'search' })
       return
     }
 
@@ -617,12 +676,6 @@ export default function App() {
       }
       return
     }
-
-    // Exit (q or Ctrl+C)
-    if (input === 'q' || (key.ctrl && input === 'c')) {
-      exit()
-      return
-    }
   })
 
   // Loading state
@@ -674,17 +727,14 @@ export default function App() {
           ⚡ Claude Code Plugin Dashboard
         </Text>
         <Box flexGrow={1} />
-        <Text dimColor>
-          <Text color="white" bold>
-            h
-          </Text>{' '}
-          help
-        </Text>
-        <Text dimColor>v0.1.0</Text>
+        <Text dimColor>v{packageJson.version}</Text>
       </Box>
 
       {/* Tab bar */}
-      <TabBar activeTab={state.activeTab} />
+      <TabBar
+        activeTab={state.activeTab}
+        isFocused={state.focusZone === 'tabbar'}
+      />
 
       {/* Tab content */}
       <Box flexGrow={1} flexDirection="column">
@@ -693,7 +743,7 @@ export default function App() {
             plugins={enabledPlugins}
             selectedIndex={state.selectedIndex}
             searchQuery={state.searchQuery}
-            isSearchMode={isSearchMode}
+            focusZone={state.focusZone}
           />
         )}
 
@@ -702,7 +752,7 @@ export default function App() {
             plugins={installedPlugins}
             selectedIndex={state.selectedIndex}
             searchQuery={state.searchQuery}
-            isSearchMode={isSearchMode}
+            focusZone={state.focusZone}
           />
         )}
 
@@ -713,7 +763,7 @@ export default function App() {
             searchQuery={state.searchQuery}
             sortBy={state.sortBy}
             sortOrder={state.sortOrder}
-            isSearchMode={isSearchMode}
+            focusZone={state.focusZone}
           />
         )}
 
@@ -722,7 +772,7 @@ export default function App() {
             marketplaces={filteredMarketplaces}
             selectedIndex={state.selectedIndex}
             searchQuery={state.searchQuery}
-            isSearchMode={isSearchMode}
+            focusZone={state.focusZone}
           />
         )}
 
@@ -751,12 +801,19 @@ export default function App() {
 
       {/* Footer with key hints */}
       <KeyHints
+        focusZone={state.focusZone}
         extraHints={(() => {
-          // Search mode hint
-          if (isSearchMode) {
-            return [{ key: 'Enter', action: 'exit search' }]
+          // Search mode - no extra hints (base hints cover it)
+          if (state.focusZone === 'search') {
+            return undefined
           }
 
+          // TabBar mode - no extra hints
+          if (state.focusZone === 'tabbar') {
+            return undefined
+          }
+
+          // List mode - add tab-specific hints
           // Plugin tabs hints (enabled, installed, discover)
           if (
             state.activeTab === 'enabled' ||

@@ -10,7 +10,7 @@ import React from 'react'
 import { describe, it, expect } from 'vitest'
 import { render } from 'ink-testing-library'
 import EnabledTab from './EnabledTab.js'
-import type { Plugin } from '../types/index.js'
+import type { Plugin, FocusZone } from '../types/index.js'
 
 /**
  * Create a mock enabled plugin for testing
@@ -36,7 +36,7 @@ describe('EnabledTab', () => {
     plugins: [] as Plugin[],
     selectedIndex: 0,
     searchQuery: '',
-    isSearchMode: false,
+    focusZone: 'list' as FocusZone,
   }
 
   describe('header rendering', () => {
@@ -87,7 +87,7 @@ describe('EnabledTab', () => {
 
     it('should highlight search bar when in search mode', () => {
       const { lastFrame } = render(
-        <EnabledTab {...defaultProps} isSearchMode={true} />,
+        <EnabledTab {...defaultProps} focusZone="search" />,
       )
 
       // Search mode shows cursor

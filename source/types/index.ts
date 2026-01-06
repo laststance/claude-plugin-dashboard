@@ -165,11 +165,19 @@ export interface Settings {
 }
 
 /**
+ * Focus zones for keyboard navigation
+ * Defines which UI area currently has keyboard focus
+ */
+export type FocusZone = 'tabbar' | 'search' | 'list'
+
+/**
  * Application state for useReducer
  */
 export interface AppState {
   /** Current active tab */
   activeTab: 'enabled' | 'installed' | 'discover' | 'marketplaces' | 'errors'
+  /** Current focus zone for keyboard navigation */
+  focusZone: FocusZone
   /** All plugins from all marketplaces */
   plugins: Plugin[]
   /** All marketplaces */
@@ -230,3 +238,4 @@ export type Action =
   | { type: 'SHOW_CONFIRM_UNINSTALL'; payload: string }
   | { type: 'HIDE_CONFIRM_UNINSTALL' }
   | { type: 'TOGGLE_HELP' }
+  | { type: 'SET_FOCUS_ZONE'; payload: FocusZone }

@@ -24,6 +24,8 @@
   "bin": {
     "claude-plugin-dashboard": "./dist/cli.js"
   },
+  "main": "./dist/app.js",
+  "types": "./dist/app.d.ts",
   "type": "module",
   "engines": {
     "node": ">=20"
