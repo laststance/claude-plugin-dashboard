@@ -23,6 +23,18 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'errors', label: 'Errors' },
 ]
 
+/** Color constants for consistent theming */
+const COLORS = {
+  /** Background color when tab bar is focused */
+  FOCUS_BG: '#1a3a4a',
+  /** Background color for active tab (not focused) */
+  ACTIVE_BG: '#333333',
+  /** Foreground color for active/focused elements */
+  ACTIVE_FG: 'cyan',
+  /** Foreground color for inactive elements */
+  INACTIVE_FG: 'gray',
+} as const
+
 /**
  * Horizontal tab bar component
  * @example
@@ -32,7 +44,7 @@ export default function TabBar({ activeTab, isFocused = false }: TabBarProps) {
   return (
     <Box gap={2} marginBottom={1}>
       {/* Focus indicator prefix */}
-      {isFocused && <Text color="cyan">▶</Text>}
+      {isFocused && <Text color={COLORS.ACTIVE_FG}>▶</Text>}
       {TABS.map((tab) => {
         const isActive = tab.id === activeTab
 
@@ -41,13 +53,13 @@ export default function TabBar({ activeTab, isFocused = false }: TabBarProps) {
             {isActive ? (
               <Text
                 bold
-                color="cyan"
-                backgroundColor={isFocused ? '#1a3a4a' : '#333333'}
+                color={COLORS.ACTIVE_FG}
+                backgroundColor={isFocused ? COLORS.FOCUS_BG : COLORS.ACTIVE_BG}
               >
                 {isFocused ? `[${tab.label}]` : ` ${tab.label} `}
               </Text>
             ) : (
-              <Text color="gray">{` ${tab.label} `}</Text>
+              <Text color={COLORS.INACTIVE_FG}>{` ${tab.label} `}</Text>
             )}
           </Box>
         )
