@@ -349,14 +349,29 @@ export function appReducer(state: AppState, action: Action): AppState {
 }
 
 /**
- * Get items array for current tab
+ * Get items array for current tab with search filter applied
+ * @param state - Current app state
+ * @returns Filtered array of items for the active tab
+ * @example
+ * getItemsForTab({ activeTab: 'installed', searchQuery: 'su', plugins: [...] })
+ * // => Only installed plugins matching 'su'
  */
 export function getItemsForTab(state: AppState): unknown[] {
   switch (state.activeTab) {
-    case 'enabled':
-      return state.plugins.filter((p) => p.isInstalled && p.isEnabled)
-    case 'installed':
-      return state.plugins.filter((p) => p.isInstalled)
+    case 'enabled': {
+      const enabledPlugins = state.plugins.filter(
+        (p) => p.isInstalled && p.isEnabled,
+      )
+      return state.searchQuery
+        ? searchPlugins(state.searchQuery, enabledPlugins)
+        : enabledPlugins
+    }
+    case 'installed': {
+      const installedPlugins = state.plugins.filter((p) => p.isInstalled)
+      return state.searchQuery
+        ? searchPlugins(state.searchQuery, installedPlugins)
+        : installedPlugins
+    }
     case 'discover':
       return getFilteredPlugins(state)
     case 'marketplaces':
@@ -763,13 +778,7 @@ export default function App() {
         state.activeTab === 'installed' ||
         state.activeTab === 'discover')
     ) {
-      const items =
-        state.activeTab === 'enabled'
-          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
-          : state.activeTab === 'installed'
-            ? state.plugins.filter((p) => p.isInstalled)
-            : getFilteredPlugins(state)
-
+      const items = getItemsForTab(state) as Plugin[]
       const selectedPlugin = items[state.selectedIndex]
       if (selectedPlugin) {
         if (!selectedPlugin.isInstalled) {
@@ -807,13 +816,7 @@ export default function App() {
         state.activeTab === 'installed' ||
         state.activeTab === 'discover')
     ) {
-      const items =
-        state.activeTab === 'enabled'
-          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
-          : state.activeTab === 'installed'
-            ? state.plugins.filter((p) => p.isInstalled)
-            : getFilteredPlugins(state)
-
+      const items = getItemsForTab(state) as Plugin[]
       const selectedPlugin = items[state.selectedIndex]
       if (selectedPlugin && selectedPlugin.isInstalled) {
         try {
@@ -910,13 +913,7 @@ export default function App() {
         state.activeTab === 'installed' ||
         state.activeTab === 'discover')
     ) {
-      const items =
-        state.activeTab === 'enabled'
-          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
-          : state.activeTab === 'installed'
-            ? state.plugins.filter((p) => p.isInstalled)
-            : getFilteredPlugins(state)
-
+      const items = getItemsForTab(state) as Plugin[]
       const selectedPlugin = items[state.selectedIndex]
       if (selectedPlugin && !selectedPlugin.isInstalled) {
         handleInstall(selectedPlugin.id)
@@ -936,13 +933,7 @@ export default function App() {
         state.activeTab === 'installed' ||
         state.activeTab === 'discover')
     ) {
-      const items =
-        state.activeTab === 'enabled'
-          ? state.plugins.filter((p) => p.isInstalled && p.isEnabled)
-          : state.activeTab === 'installed'
-            ? state.plugins.filter((p) => p.isInstalled)
-            : getFilteredPlugins(state)
-
+      const items = getItemsForTab(state) as Plugin[]
       const selectedPlugin = items[state.selectedIndex]
       if (selectedPlugin && selectedPlugin.isInstalled) {
         dispatch({ type: 'SHOW_CONFIRM_UNINSTALL', payload: selectedPlugin.id })
