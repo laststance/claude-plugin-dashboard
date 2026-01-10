@@ -55,7 +55,7 @@ export function detectPluginComponents(
     components.skills = skillsCount
   }
 
-  // Detect commands (count .md files in commands/ folder)
+  // Detect commands (legacy location, now unified with skills in Claude Code v2.1.3+)
   const commandsCount = countMarkdownFiles(installPath, 'commands')
   if (commandsCount > 0) {
     components.commands = commandsCount

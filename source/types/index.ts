@@ -12,7 +12,7 @@
 export interface PluginComponents {
   /** Count of skill directories in skills/ */
   skills?: number
-  /** Count of slash command .md files in commands/ */
+  /** Count of command .md files in commands/ (legacy location, now unified with skills in Claude Code v2.1.3+) */
   commands?: number
   /** Count of subagent .md files in agents/ */
   agents?: number
