@@ -244,6 +244,17 @@ MIT © [Laststance.io](https://github.com/laststance)
 
 ## Changelog
 
+### v0.2.2
+
+- Claude Code v2.1.3 compatibility (unified Skills/Commands model)
+
+### v0.2.1
+
+- **Marketplace Management**: Add/remove/refresh marketplaces directly from dashboard
+- **Plugin Component Types**: Display skills, agents, hooks, MCP servers in detail view
+- **Bug Fix**: Search filter now works correctly in Enabled and Installed tabs
+- **CI/CD**: GitHub Actions workflow, CI and Codecov badges
+
 ### v0.2.0
 
 - **Enabled tab**: New default view showing active plugins (installed AND enabled)
