@@ -232,4 +232,20 @@ describe('MarketplaceDetail', () => {
       expect(lastFrame()).toContain('Invalid Date')
     })
   })
+
+  describe('action hints', () => {
+    it('should render action hints with keybindings', () => {
+      const marketplace = createMockMarketplace()
+      const { lastFrame } = render(
+        <MarketplaceDetail marketplace={marketplace} />,
+      )
+
+      expect(lastFrame()).toContain('a')
+      expect(lastFrame()).toContain('add')
+      expect(lastFrame()).toContain('d')
+      expect(lastFrame()).toContain('remove')
+      expect(lastFrame()).toContain('u')
+      expect(lastFrame()).toContain('update')
+    })
+  })
 })

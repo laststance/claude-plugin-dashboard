@@ -69,6 +69,24 @@ export default function MarketplaceDetail({
           {marketplace.installLocation}
         </Text>
       </Box>
+
+      {/* Actions hint */}
+      <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
+        <Text dimColor>
+          <Text bold color="white">
+            a
+          </Text>{' '}
+          add |{' '}
+          <Text bold color="white">
+            d
+          </Text>{' '}
+          remove |{' '}
+          <Text bold color="white">
+            u
+          </Text>{' '}
+          update
+        </Text>
+      </Box>
     </Box>
   )
 }
