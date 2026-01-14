@@ -606,7 +606,7 @@ export default function App() {
 
     // Handle plugin uninstall confirmation dialog
     if (state.confirmUninstall && state.operationPluginId) {
-      if (input === 'y' || input === 'Y') {
+      if (input === 'y' || input === 'Y' || key.return) {
         dispatch({ type: 'HIDE_CONFIRM_UNINSTALL' })
         handleUninstall(state.operationPluginId)
         return
@@ -621,7 +621,7 @@ export default function App() {
 
     // Handle marketplace remove confirmation dialog
     if (state.confirmRemoveMarketplace && state.operationMarketplaceId) {
-      if (input === 'y' || input === 'Y') {
+      if (input === 'y' || input === 'Y' || key.return) {
         dispatch({ type: 'HIDE_CONFIRM_REMOVE_MARKETPLACE' })
         handleRemoveMarketplace(state.operationMarketplaceId)
         return
