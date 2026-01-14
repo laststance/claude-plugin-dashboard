@@ -891,6 +891,35 @@ describe('App component', () => {
 
       // Press y to confirm
       stdin.write('y')
+      // Wait for async uninstall operation to complete
+      await waitForRender()
+      await waitForRender()
+
+      // Mock resolves immediately, so we see the success message
+      expect(lastFrame()).toContain('Uninstalled')
+    })
+
+    it('should confirm uninstall with Enter key', async () => {
+      mockLoadAllPlugins.mockReturnValue([
+        createMockPlugin({
+          id: 'p1@m',
+          name: 'installed-plugin',
+          isInstalled: true,
+          isEnabled: true,
+        }),
+      ])
+
+      const { lastFrame, stdin } = render(<App />)
+      await waitForRender()
+
+      // Press u to show confirmation
+      stdin.write('u')
+      await waitForRender()
+
+      // Press Enter to confirm
+      stdin.write('\r')
+      // Wait for async uninstall operation to complete
+      await waitForRender()
       await waitForRender()
 
       // Mock resolves immediately, so we see the success message
