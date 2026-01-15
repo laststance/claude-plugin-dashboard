@@ -412,7 +412,7 @@ describe('PluginDetail', () => {
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).toContain('[S:5]')
+      expect(lastFrame()).toContain('Skills:5')
     })
 
     it('should display commands badge with count', () => {
@@ -423,7 +423,7 @@ describe('PluginDetail', () => {
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).toContain('[/:3]')
+      expect(lastFrame()).toContain('Slash:3')
     })
 
     it('should display agents badge with count', () => {
@@ -434,7 +434,7 @@ describe('PluginDetail', () => {
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).toContain('[@:2]')
+      expect(lastFrame()).toContain('Agents:2')
     })
 
     it('should display hooks badge without count', () => {
@@ -445,7 +445,8 @@ describe('PluginDetail', () => {
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).toContain('[H]')
+      expect(lastFrame()).toContain('Hooks')
+      expect(lastFrame()).not.toContain('Hooks:')
     })
 
     it('should display MCP servers badge with count', () => {
@@ -456,7 +457,7 @@ describe('PluginDetail', () => {
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).toContain('[M:2]')
+      expect(lastFrame()).toContain('MCP:2')
     })
 
     it('should display LSP servers badge with count', () => {
@@ -467,7 +468,7 @@ describe('PluginDetail', () => {
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).toContain('[L:1]')
+      expect(lastFrame()).toContain('LSP:1')
     })
 
     it('should display multiple component badges', () => {
@@ -481,10 +482,10 @@ describe('PluginDetail', () => {
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).toContain('[S:3]')
-      expect(lastFrame()).toContain('[/:2]')
-      expect(lastFrame()).toContain('[M:1]')
-      expect(lastFrame()).toContain('[H]')
+      expect(lastFrame()).toContain('Skills:3')
+      expect(lastFrame()).toContain('Slash:2')
+      expect(lastFrame()).toContain('MCP:1')
+      expect(lastFrame()).toContain('Hooks')
     })
 
     it('should not display badges for components with zero count', () => {
@@ -496,8 +497,8 @@ describe('PluginDetail', () => {
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).not.toContain('[S')
-      expect(lastFrame()).toContain('[/:2]')
+      expect(lastFrame()).not.toContain('Skills')
+      expect(lastFrame()).toContain('Slash:2')
     })
   })
 })

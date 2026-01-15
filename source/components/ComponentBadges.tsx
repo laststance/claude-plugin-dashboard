@@ -1,7 +1,7 @@
 /**
  * ComponentBadges component
- * Displays plugin component type badges with icons and counts
- * Icons: Skills(S), Commands(/), Agents(@), Hooks(H), MCP(M), LSP(L)
+ * Displays plugin component type badges with readable text labels and counts
+ * Labels: Skills, Slash, Agents, Hooks, MCP, LSP
  */
 
 import { Box, Text } from 'ink'
@@ -30,15 +30,15 @@ interface BadgeConfig {
 }
 
 /**
- * Badge configurations with intuitive abbreviations and colors
+ * Badge configurations with readable text labels and colors
  */
 const BADGE_CONFIGS: BadgeConfig[] = [
-  { label: 'S', color: 'magenta', key: 'skills' },
-  { label: '/', color: 'cyan', key: 'commands' },
-  { label: '@', color: 'blue', key: 'agents' },
-  { label: 'H', color: 'yellow', key: 'hooks', isBoolean: true },
-  { label: 'M', color: 'green', key: 'mcpServers' },
-  { label: 'L', color: 'blueBright', key: 'lspServers' },
+  { label: 'Skills', color: 'magenta', key: 'skills' },
+  { label: 'Slash', color: 'cyan', key: 'commands' },
+  { label: 'Agents', color: 'blue', key: 'agents' },
+  { label: 'Hooks', color: 'yellow', key: 'hooks', isBoolean: true },
+  { label: 'MCP', color: 'green', key: 'mcpServers' },
+  { label: 'LSP', color: 'blueBright', key: 'lspServers' },
 ]
 
 /**
@@ -48,7 +48,7 @@ const BADGE_CONFIGS: BadgeConfig[] = [
  * @returns Badges component or null if no components
  * @example
  * <ComponentBadges components={{ skills: 5, commands: 2 }} />
- * // Renders: [S:5] [/:2]
+ * // Renders: Skills:5 Slash:2
  */
 export default function ComponentBadges({
   components,
@@ -87,6 +87,7 @@ export default function ComponentBadges({
 
 /**
  * Single badge component
+ * Renders as "Label:count" without brackets for better readability
  */
 function Badge({
   label,
@@ -99,12 +100,10 @@ function Badge({
 }): React.ReactNode {
   return (
     <Text>
-      <Text dimColor>[</Text>
       <Text color={color} bold>
         {label}
       </Text>
       {count !== undefined && <Text dimColor>:{count}</Text>}
-      <Text dimColor>]</Text>
     </Text>
   )
 }
