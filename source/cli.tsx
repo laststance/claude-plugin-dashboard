@@ -31,6 +31,7 @@ import {
 } from './services/settingsService.js'
 import { fileExists } from './services/fileService.js'
 import { PATHS } from './utils/paths.js'
+import packageJson from '../package.json' with { type: 'json' }
 
 const args = process.argv.slice(2)
 const command = args[0]
@@ -333,7 +334,7 @@ if (command) {
     })
     .with(P.union('help', '-h', '--help'), () => showHelp())
     .with(P.union('-v', '--version'), () =>
-      console.log('claude-plugin-dashboard v0.1.0'),
+      console.log(`claude-plugin-dashboard v${packageJson.version}`),
     )
     .otherwise((cmd) => {
       console.error(`Unknown command: ${cmd}`)
