@@ -15,6 +15,7 @@
  */
 
 import { render } from 'ink'
+import { match, P } from 'ts-pattern'
 import App from './app.js'
 import {
   loadAllPlugins,
@@ -286,12 +287,9 @@ if (command) {
   // Non-interactive mode
   checkClaudeCodeInstalled()
 
-  switch (command) {
-    case 'status':
-      showStatus()
-      break
-
-    case 'list':
+  match(command)
+    .with('status', () => showStatus())
+    .with('list', () => {
       if (subCommand === '--installed' || args.includes('--installed')) {
         listPlugins({ installed: true })
       } else if (
@@ -304,56 +302,44 @@ if (command) {
       } else {
         listPlugins({})
       }
-      break
-
-    case 'info':
+    })
+    .with('info', () => {
       if (!subCommand) {
         console.error('Usage: claude-plugin-dashboard info <plugin-id>')
         process.exit(1)
       }
       showPluginInfo(subCommand)
-      break
-
-    case 'enable':
+    })
+    .with('enable', () => {
       if (!subCommand) {
         console.error('Usage: claude-plugin-dashboard enable <plugin-id>')
         process.exit(1)
       }
       handleEnable(subCommand)
-      break
-
-    case 'disable':
+    })
+    .with('disable', () => {
       if (!subCommand) {
         console.error('Usage: claude-plugin-dashboard disable <plugin-id>')
         process.exit(1)
       }
       handleDisable(subCommand)
-      break
-
-    case 'toggle':
+    })
+    .with('toggle', () => {
       if (!subCommand) {
         console.error('Usage: claude-plugin-dashboard toggle <plugin-id>')
         process.exit(1)
       }
       handleToggle(subCommand)
-      break
-
-    case 'help':
-    case '-h':
-    case '--help':
-      showHelp()
-      break
-
-    case '-v':
-    case '--version':
-      console.log('claude-plugin-dashboard v0.1.0')
-      break
-
-    default:
-      console.error(`Unknown command: ${command}`)
+    })
+    .with(P.union('help', '-h', '--help'), () => showHelp())
+    .with(P.union('-v', '--version'), () =>
+      console.log('claude-plugin-dashboard v0.1.0'),
+    )
+    .otherwise((cmd) => {
+      console.error(`Unknown command: ${cmd}`)
       console.log('Run "claude-plugin-dashboard help" for usage information.')
       process.exit(1)
-  }
+    })
 } else {
   // Interactive mode
   checkClaudeCodeInstalled()

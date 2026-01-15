@@ -4,6 +4,7 @@
  */
 
 import { Box, Text } from 'ink'
+import { match } from 'ts-pattern'
 import type { FocusZone } from '../types/index.js'
 
 interface KeyHintsProps {
@@ -21,34 +22,30 @@ interface KeyHintsProps {
 function getBaseHints(
   focusZone: FocusZone,
 ): Array<{ key: string; action: string }> {
-  switch (focusZone) {
-    case 'tabbar':
-      return [
-        { key: '←/→', action: 'switch tabs' },
-        { key: '↓', action: 'search/list' },
-        { key: 'Tab', action: 'next tab' },
-        { key: 'h', action: 'help' },
-        { key: 'q or ^C', action: 'quit' },
-      ]
-    case 'search':
-      return [
-        { key: '↑', action: 'tabs' },
-        { key: '↓/Enter', action: 'list' },
-        { key: 'ESC', action: 'clear/exit' },
-        { key: 'h', action: 'help' },
-        { key: 'q or ^C', action: 'quit' },
-      ]
-    case 'list':
-    default:
-      return [
-        { key: '↑/↓', action: 'navigate' },
-        { key: '↑(top)', action: 'search' },
-        { key: 'Space', action: 'toggle' },
-        { key: 'Tab', action: 'next tab' },
-        { key: 'h', action: 'help' },
-        { key: 'q or ^C', action: 'quit' },
-      ]
-  }
+  return match(focusZone)
+    .with('tabbar', () => [
+      { key: '←/→', action: 'switch tabs' },
+      { key: '↓', action: 'search/list' },
+      { key: 'Tab', action: 'next tab' },
+      { key: 'h', action: 'help' },
+      { key: 'q or ^C', action: 'quit' },
+    ])
+    .with('search', () => [
+      { key: '↑', action: 'tabs' },
+      { key: '↓/Enter', action: 'list' },
+      { key: 'ESC', action: 'clear/exit' },
+      { key: 'h', action: 'help' },
+      { key: 'q or ^C', action: 'quit' },
+    ])
+    .with('list', () => [
+      { key: '↑/↓', action: 'navigate' },
+      { key: '↑(top)', action: 'search' },
+      { key: 'Space', action: 'toggle' },
+      { key: 'Tab', action: 'next tab' },
+      { key: 'h', action: 'help' },
+      { key: 'q or ^C', action: 'quit' },
+    ])
+    .exhaustive()
 }
 
 /**

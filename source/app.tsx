@@ -5,6 +5,7 @@
 
 import { useEffect, useReducer } from 'react'
 import { Box, Text, useInput, useApp } from 'ink'
+import { match, P } from 'ts-pattern'
 import TabBar, { getNextTab } from './components/TabBar.js'
 import KeyHints from './components/KeyHints.js'
 import DiscoverTab from './tabs/DiscoverTab.js'
@@ -93,16 +94,12 @@ function getMarketplaceOperationMessage(
   operation: MarketplaceOperation,
   marketplaceId?: string | null,
 ): string {
-  switch (operation) {
-    case 'adding':
-      return 'Adding marketplace...'
-    case 'removing':
-      return `Removing ${marketplaceId}...`
-    case 'updating':
-      return `Updating ${marketplaceId || 'marketplaces'}...`
-    default:
-      return ''
-  }
+  return match(operation)
+    .with('adding', () => 'Adding marketplace...')
+    .with('removing', () => `Removing ${marketplaceId}...`)
+    .with('updating', () => `Updating ${marketplaceId || 'marketplaces'}...`)
+    .with('idle', () => '')
+    .exhaustive()
 }
 
 /**
@@ -357,30 +354,25 @@ export function appReducer(state: AppState, action: Action): AppState {
  * // => Only installed plugins matching 'su'
  */
 export function getItemsForTab(state: AppState): unknown[] {
-  switch (state.activeTab) {
-    case 'enabled': {
+  return match(state.activeTab)
+    .with('enabled', () => {
       const enabledPlugins = state.plugins.filter(
         (p) => p.isInstalled && p.isEnabled,
       )
       return state.searchQuery
         ? searchPlugins(state.searchQuery, enabledPlugins)
         : enabledPlugins
-    }
-    case 'installed': {
+    })
+    .with('installed', () => {
       const installedPlugins = state.plugins.filter((p) => p.isInstalled)
       return state.searchQuery
         ? searchPlugins(state.searchQuery, installedPlugins)
         : installedPlugins
-    }
-    case 'discover':
-      return getFilteredPlugins(state)
-    case 'marketplaces':
-      return state.marketplaces
-    case 'errors':
-      return state.errors
-    default:
-      return []
-  }
+    })
+    .with('discover', () => getFilteredPlugins(state))
+    .with('marketplaces', () => state.marketplaces)
+    .with('errors', () => state.errors)
+    .otherwise(() => [])
 }
 
 /**
@@ -1004,50 +996,48 @@ export default function App() {
 
       {/* Tab content */}
       <Box flexGrow={1} flexDirection="column">
-        {state.activeTab === 'enabled' && (
-          <EnabledTab
-            plugins={enabledPlugins}
-            selectedIndex={state.selectedIndex}
-            searchQuery={state.searchQuery}
-            focusZone={state.focusZone}
-          />
-        )}
-
-        {state.activeTab === 'installed' && (
-          <InstalledTab
-            plugins={installedPlugins}
-            selectedIndex={state.selectedIndex}
-            searchQuery={state.searchQuery}
-            focusZone={state.focusZone}
-          />
-        )}
-
-        {state.activeTab === 'discover' && (
-          <DiscoverTab
-            plugins={filteredPlugins}
-            selectedIndex={state.selectedIndex}
-            searchQuery={state.searchQuery}
-            sortBy={state.sortBy}
-            sortOrder={state.sortOrder}
-            focusZone={state.focusZone}
-          />
-        )}
-
-        {state.activeTab === 'marketplaces' && (
-          <MarketplacesTab
-            marketplaces={filteredMarketplaces}
-            selectedIndex={state.selectedIndex}
-            searchQuery={state.searchQuery}
-            focusZone={state.focusZone}
-          />
-        )}
-
-        {state.activeTab === 'errors' && (
-          <ErrorsTab
-            errors={state.errors}
-            selectedIndex={state.selectedIndex}
-          />
-        )}
+        {match(state.activeTab)
+          .with('enabled', () => (
+            <EnabledTab
+              plugins={enabledPlugins}
+              selectedIndex={state.selectedIndex}
+              searchQuery={state.searchQuery}
+              focusZone={state.focusZone}
+            />
+          ))
+          .with('installed', () => (
+            <InstalledTab
+              plugins={installedPlugins}
+              selectedIndex={state.selectedIndex}
+              searchQuery={state.searchQuery}
+              focusZone={state.focusZone}
+            />
+          ))
+          .with('discover', () => (
+            <DiscoverTab
+              plugins={filteredPlugins}
+              selectedIndex={state.selectedIndex}
+              searchQuery={state.searchQuery}
+              sortBy={state.sortBy}
+              sortOrder={state.sortOrder}
+              focusZone={state.focusZone}
+            />
+          ))
+          .with('marketplaces', () => (
+            <MarketplacesTab
+              marketplaces={filteredMarketplaces}
+              selectedIndex={state.selectedIndex}
+              searchQuery={state.searchQuery}
+              focusZone={state.focusZone}
+            />
+          ))
+          .with('errors', () => (
+            <ErrorsTab
+              errors={state.errors}
+              selectedIndex={state.selectedIndex}
+            />
+          ))
+          .exhaustive()}
       </Box>
 
       {/* Plugin Uninstall Confirmation Dialog */}
@@ -1083,69 +1073,63 @@ export default function App() {
       {/* Footer with key hints */}
       <KeyHints
         focusZone={state.focusZone}
-        extraHints={(() => {
-          // Search mode - no extra hints (base hints cover it)
-          if (state.focusZone === 'search') {
-            return undefined
-          }
-
-          // TabBar mode - no extra hints
-          if (state.focusZone === 'tabbar') {
-            return undefined
-          }
-
-          // List mode - add tab-specific hints
-          // Plugin tabs hints (enabled, installed, discover)
-          if (
-            state.activeTab === 'enabled' ||
-            state.activeTab === 'installed' ||
-            state.activeTab === 'discover'
-          ) {
+        extraHints={match([state.focusZone, state.activeTab] as const)
+          .with(['search', P._], () => undefined)
+          .with(['tabbar', P._], () => undefined)
+          .with(['list', 'enabled'], () => {
             const hints = [
               { key: '/', action: 'search' },
               { key: 'i', action: 'install' },
               { key: 'u', action: 'uninstall' },
             ]
-
-            // Get selected plugin to determine Enter action
-            const items =
-              state.activeTab === 'enabled'
-                ? enabledPlugins
-                : state.activeTab === 'installed'
-                  ? installedPlugins
-                  : filteredPlugins
-
-            const selectedPlugin = items[state.selectedIndex]
-
-            // Add contextual Enter hint
+            const selectedPlugin = enabledPlugins[state.selectedIndex]
             if (selectedPlugin) {
-              if (!selectedPlugin.isInstalled) {
-                hints.push({ key: 'Enter', action: 'install' })
-              } else {
-                hints.push({ key: 'Enter', action: 'toggle' })
-              }
+              hints.push({
+                key: 'Enter',
+                action: selectedPlugin.isInstalled ? 'toggle' : 'install',
+              })
             }
-
-            // Add sort hint for discover tab
-            if (state.activeTab === 'discover') {
-              hints.push({ key: 's', action: 'sort' })
-            }
-
             return hints
-          }
-
-          // Marketplaces tab hints
-          if (state.activeTab === 'marketplaces') {
-            return [
+          })
+          .with(['list', 'installed'], () => {
+            const hints = [
               { key: '/', action: 'search' },
-              { key: 'a', action: 'add' },
-              { key: 'd', action: 'remove' },
-              { key: 'u', action: 'update' },
+              { key: 'i', action: 'install' },
+              { key: 'u', action: 'uninstall' },
             ]
-          }
-
-          return undefined
-        })()}
+            const selectedPlugin = installedPlugins[state.selectedIndex]
+            if (selectedPlugin) {
+              hints.push({
+                key: 'Enter',
+                action: selectedPlugin.isInstalled ? 'toggle' : 'install',
+              })
+            }
+            return hints
+          })
+          .with(['list', 'discover'], () => {
+            const hints = [
+              { key: '/', action: 'search' },
+              { key: 'i', action: 'install' },
+              { key: 'u', action: 'uninstall' },
+            ]
+            const selectedPlugin = filteredPlugins[state.selectedIndex]
+            if (selectedPlugin) {
+              hints.push({
+                key: 'Enter',
+                action: selectedPlugin.isInstalled ? 'toggle' : 'install',
+              })
+            }
+            hints.push({ key: 's', action: 'sort' })
+            return hints
+          })
+          .with(['list', 'marketplaces'], () => [
+            { key: '/', action: 'search' },
+            { key: 'a', action: 'add' },
+            { key: 'd', action: 'remove' },
+            { key: 'u', action: 'update' },
+          ])
+          .with(['list', 'errors'], () => undefined)
+          .otherwise(() => undefined)}
       />
     </Box>
   )
