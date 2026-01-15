@@ -19,6 +19,7 @@ vi.mock('./settingsService.js', () => ({
 
 vi.mock('./componentService.js', () => ({
   detectPluginComponents: vi.fn(() => undefined),
+  detectComponentsDetailed: vi.fn(() => undefined),
 }))
 
 vi.mock('../utils/paths.js', () => ({

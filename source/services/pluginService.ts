@@ -9,7 +9,10 @@ import {
   listDirectories,
 } from './fileService.js'
 import { getEnabledPlugins } from './settingsService.js'
-import { detectPluginComponents } from './componentService.js'
+import {
+  detectPluginComponents,
+  detectComponentsDetailed,
+} from './componentService.js'
 import { PATHS, getMarketplaceJsonPath } from '../utils/paths.js'
 import type {
   Plugin,
@@ -17,8 +20,11 @@ import type {
   InstalledPluginEntry,
   InstallCountsFile,
   MarketplaceFile,
+  MarketplacePluginEntry,
   KnownMarketplacesFile,
   Marketplace,
+  PluginComponentsDetailed,
+  ComponentInfo,
 } from '../types/index.js'
 
 /**
@@ -67,10 +73,22 @@ export function loadAllPlugins(): Plugin[] {
           const pluginId = `${plugin.name}@${marketplace}`
           const installedEntry = installedMap.get(pluginId)
 
-          // Detect components for installed plugins
+          // Detect components for installed plugins (counts)
           const components = installedEntry
             ? detectPluginComponents(installedEntry.installPath)
             : undefined
+
+          // Detect detailed components
+          // - For installed: read from file system (names + descriptions)
+          // - For not installed: parse from marketplace JSON (names only)
+          let componentsDetailed: PluginComponentsDetailed | undefined
+          if (installedEntry) {
+            componentsDetailed = detectComponentsDetailed(
+              installedEntry.installPath,
+            )
+          } else {
+            componentsDetailed = parseMarketplaceComponents(plugin)
+          }
 
           plugins.push({
             id: pluginId,
@@ -90,6 +108,7 @@ export function loadAllPlugins(): Plugin[] {
             isLocal: installedEntry?.isLocal,
             gitCommitSha: installedEntry?.gitCommitSha,
             components,
+            componentsDetailed,
           })
         }
       }
@@ -270,4 +289,86 @@ export function getPluginStatistics(): {
     enabled: allPlugins.filter((p) => p.isEnabled).length,
     marketplaces: marketplaces.length,
   }
+}
+
+/**
+ * Parse component names from marketplace plugin entry
+ * Extracts component names from skills[], agents[], commands[] arrays
+ * @param plugin - Marketplace plugin entry
+ * @returns Detailed components with names only (no descriptions)
+ * @example
+ * parseMarketplaceComponents({ skills: ['./skills/xlsx', './skills/docx'] })
+ * // => { skills: [{ name: 'xlsx', type: 'skill' }, { name: 'docx', type: 'skill' }] }
+ */
+function parseMarketplaceComponents(
+  plugin: MarketplacePluginEntry,
+): PluginComponentsDetailed | undefined {
+  const detailed: PluginComponentsDetailed = {}
+
+  // Parse skills array (e.g., ["./skills/xlsx", "./skills/docx"])
+  if (plugin.skills && Array.isArray(plugin.skills)) {
+    const skills = plugin.skills
+      .map((skillPath) => extractComponentName(skillPath, 'skill'))
+      .filter((item): item is ComponentInfo => item !== null)
+
+    if (skills.length > 0) {
+      detailed.skills = skills
+    }
+  }
+
+  // Parse agents array (if available in marketplace)
+  if (plugin.agents && Array.isArray(plugin.agents)) {
+    const agents = plugin.agents
+      .map((agentPath) => extractComponentName(agentPath, 'agent'))
+      .filter((item): item is ComponentInfo => item !== null)
+
+    if (agents.length > 0) {
+      detailed.agents = agents
+    }
+  }
+
+  // Parse commands array (if available in marketplace)
+  if (plugin.commands && Array.isArray(plugin.commands)) {
+    const commands = plugin.commands
+      .map((cmdPath) => extractComponentName(cmdPath, 'command'))
+      .filter((item): item is ComponentInfo => item !== null)
+
+    if (commands.length > 0) {
+      detailed.commands = commands
+    }
+  }
+
+  // Return undefined if no components found
+  if (Object.keys(detailed).length === 0) {
+    return undefined
+  }
+
+  return detailed
+}
+
+/**
+ * Extract component name from path string
+ * @param pathStr - Path like "./skills/xlsx" or just "xlsx"
+ * @param type - Component type
+ * @returns ComponentInfo or null if invalid
+ */
+function extractComponentName(
+  pathStr: string,
+  type: ComponentInfo['type'],
+): ComponentInfo | null {
+  if (typeof pathStr !== 'string' || !pathStr.trim()) {
+    return null
+  }
+
+  // Extract basename from path
+  // "./skills/xlsx" -> "xlsx"
+  // "xlsx" -> "xlsx"
+  const parts = pathStr.split('/')
+  const name = parts[parts.length - 1]?.trim()
+
+  if (!name) {
+    return null
+  }
+
+  return { name, type }
 }
