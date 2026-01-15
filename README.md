@@ -32,7 +32,12 @@ Built with [Ink](https://github.com/vadimdemedes/ink) (React for CLI).
 ## Installation
 
 ```bash
-npm install -g @laststance/claude-plugin-dashboard
+npx @laststance/claude-plugin-dashboard@latest
+
+```
+
+```bash
+npm install -g @laststance/claude-plugin-dashboard@latest
 ```
 
 ## Usage
