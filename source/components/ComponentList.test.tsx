@@ -207,9 +207,11 @@ describe('ComponentList', () => {
         <ComponentList componentsDetailed={detailed} />,
       )
 
-      // Note: hooks in detailed uses different rendering path
-      // This test verifies the component handles hooks array
       expect(lastFrame()).toContain('Components')
+      expect(lastFrame()).toContain('Hooks')
+      expect(lastFrame()).toContain('PreCommit')
+      expect(lastFrame()).toContain('PostPush')
+      expect(lastFrame()).toContain('(2)')
     })
   })
 })

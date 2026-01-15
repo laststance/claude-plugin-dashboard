@@ -252,20 +252,49 @@ function getMarkdownFileDetails(
 
 /**
  * Parse first non-empty line of a markdown file as description
- * Strips leading # characters for headings
+ * Properly skips YAML frontmatter block and strips heading markers
  * @param filePath - Path to markdown file
- * @returns First line content or undefined
+ * @returns First non-frontmatter, non-empty line or undefined
+ * @example
+ * // File: "---\nname: test\n---\n# My Title\n"
+ * parseFirstLineDescription(path) // => "My Title"
  */
 function parseFirstLineDescription(filePath: string): string | undefined {
   try {
     const content = fs.readFileSync(filePath, 'utf-8')
     const lines = content.split('\n')
+    let inFrontmatter = false
+    let frontmatterClosed = false
+
     for (const line of lines) {
       const trimmed = line.trim()
-      if (trimmed && !trimmed.startsWith('---')) {
-        // Remove heading markers
-        return trimmed.replace(/^#+\s*/, '')
+
+      // Detect frontmatter delimiter
+      if (trimmed === '---') {
+        if (!inFrontmatter && !frontmatterClosed) {
+          // Opening delimiter
+          inFrontmatter = true
+          continue
+        } else if (inFrontmatter) {
+          // Closing delimiter
+          inFrontmatter = false
+          frontmatterClosed = true
+          continue
+        }
       }
+
+      // Skip lines inside frontmatter
+      if (inFrontmatter) {
+        continue
+      }
+
+      // Skip empty lines
+      if (!trimmed) {
+        continue
+      }
+
+      // Found first content line - remove heading markers and return
+      return trimmed.replace(/^#+\s*/, '')
     }
     return undefined
   } catch {

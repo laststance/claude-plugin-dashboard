@@ -6,7 +6,10 @@
 import { Box, Text } from 'ink'
 import StatusIcon from './StatusIcon.js'
 import ComponentBadges from './ComponentBadges.js'
-import ComponentList from './ComponentList.js'
+import ComponentList, {
+  hasAnyCountComponents,
+  hasAnyDetailedComponents,
+} from './ComponentList.js'
 import type { Plugin } from '../types/index.js'
 
 interface PluginDetailProps {
@@ -80,7 +83,9 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
       </Box>
 
       {/* Component List Section */}
-      {(plugin.components || plugin.componentsDetailed) && (
+      {((plugin.components && hasAnyCountComponents(plugin.components)) ||
+        (plugin.componentsDetailed &&
+          hasAnyDetailedComponents(plugin.componentsDetailed))) && (
         <>
           <Box marginY={1}>
             <Text dimColor>{'─'.repeat(36)}</Text>

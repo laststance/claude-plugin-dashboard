@@ -84,6 +84,13 @@ const CATEGORY_CONFIGS: CategoryConfig[] = [
     countKey: 'lspServers',
     type: 'lsp',
   },
+  {
+    label: 'Hooks',
+    color: 'yellow',
+    detailedKey: 'hooks',
+    countKey: 'hooks',
+    type: 'hook',
+  },
 ]
 
 /**
@@ -167,7 +174,7 @@ export default function ComponentList({
           }
         }
 
-        // Count-only fallback
+        // Count-only fallback (number) or boolean hooks fallback
         if (typeof count === 'number' && count > 0) {
           return (
             <CountOnlySection
@@ -179,18 +186,20 @@ export default function ComponentList({
           )
         }
 
+        // Boolean hooks fallback (hooks: true without detailed info)
+        if (config.countKey === 'hooks' && count === true) {
+          return (
+            <Box key={config.countKey}>
+              <Text color={config.color} bold>
+                {config.label}
+              </Text>
+              <Text dimColor> (configured)</Text>
+            </Box>
+          )
+        }
+
         return null
       })}
-
-      {/* Hooks special case (boolean in counts) */}
-      {components?.hooks && !componentsDetailed?.hooks?.length && (
-        <Box>
-          <Text color="yellow" bold>
-            Hooks
-          </Text>
-          <Text dimColor> (configured)</Text>
-        </Box>
-      )}
     </Box>
   )
 }
@@ -343,8 +352,13 @@ function isComponentInfoArray(
  * Check if PluginComponentsDetailed has any data
  * @param detailed - Detailed components object
  * @returns true if any category has items
+ * @example
+ * hasAnyDetailedComponents({ skills: [{ name: 'xlsx', type: 'skill' }] }) // => true
+ * hasAnyDetailedComponents({}) // => false
  */
-function hasAnyDetailedComponents(detailed: PluginComponentsDetailed): boolean {
+export function hasAnyDetailedComponents(
+  detailed: PluginComponentsDetailed,
+): boolean {
   return (
     (detailed.skills?.length ?? 0) > 0 ||
     (detailed.commands?.length ?? 0) > 0 ||
@@ -359,8 +373,12 @@ function hasAnyDetailedComponents(detailed: PluginComponentsDetailed): boolean {
  * Check if PluginComponents has any count data
  * @param components - Components counts object
  * @returns true if any category has count > 0
+ * @example
+ * hasAnyCountComponents({ skills: 5 }) // => true
+ * hasAnyCountComponents({ hooks: true }) // => true
+ * hasAnyCountComponents({}) // => false
  */
-function hasAnyCountComponents(components: PluginComponents): boolean {
+export function hasAnyCountComponents(components: PluginComponents): boolean {
   return (
     (components.skills ?? 0) > 0 ||
     (components.commands ?? 0) > 0 ||
