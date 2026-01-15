@@ -4,7 +4,101 @@
  */
 
 /**
- * Component types provided by a plugin
+ * Component type identifier
+ */
+export type ComponentType =
+  | 'skill'
+  | 'command'
+  | 'agent'
+  | 'hook'
+  | 'mcp'
+  | 'lsp'
+
+/**
+ * Individual component information with name and optional description
+ *
+ * Data Source Architecture:
+ * ```
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │                    Plugin Installed?                        │
+ * │                          │                                  │
+ * │           ┌──── YES ─────┴───── NO ────┐                    │
+ * │           │                            │                    │
+ * │           ▼                            ▼                    │
+ * │  ┌─────────────────────┐    ┌─────────────────────┐         │
+ * │  │  File System Scan   │    │  Marketplace JSON   │         │
+ * │  │  ─────────────────  │    │  ─────────────────  │         │
+ * │  │  skills/{name}/     │    │  skills: [          │         │
+ * │  │  commands/{name}.md │    │    "./skills/xlsx"  │         │
+ * │  │  agents/{name}.md   │    │  ]                  │         │
+ * │  │  plugin.json keys   │    │                     │         │
+ * │  └─────────────────────┘    └─────────────────────┘         │
+ * │           │                            │                    │
+ * │           ▼                            ▼                    │
+ * │  Names + Descriptions          Names only (if available)    │
+ * │                                                             │
+ * │           └────────────────────────────┘                    │
+ * │                          │                                  │
+ * │                          ▼                                  │
+ * │              PluginComponentsDetailed                       │
+ * │              ─────────────────────────                      │
+ * │              {                                              │
+ * │                skills: [                                    │
+ * │                  { name: "xlsx", description: "..." },      │
+ * │                  { name: "docx" }                           │
+ * │                ],                                           │
+ * │                mcpServers: ["supabase", "context7"]         │
+ * │              }                                              │
+ * └─────────────────────────────────────────────────────────────┘
+ * ```
+ *
+ * @example
+ * // Skill with description (from SKILL.md frontmatter)
+ * { name: "xlsx", description: "Spreadsheet editing", type: "skill" }
+ *
+ * @example
+ * // Command without description
+ * { name: "code-review", type: "command" }
+ */
+export interface ComponentInfo {
+  /** Component name (e.g., "xlsx", "code-review") */
+  name: string
+  /** Optional description from SKILL.md frontmatter or first line of .md file */
+  description?: string
+  /** Component type for display categorization */
+  type: ComponentType
+}
+
+/**
+ * Detailed component information for a plugin
+ * Extends PluginComponents (counts) with actual component names and descriptions
+ *
+ * @example
+ * {
+ *   skills: [
+ *     { name: "xlsx", description: "Spreadsheet editing", type: "skill" },
+ *     { name: "docx", type: "skill" }
+ *   ],
+ *   mcpServers: ["supabase", "context7"]
+ * }
+ */
+export interface PluginComponentsDetailed {
+  /** Skill details (name + optional description) */
+  skills?: ComponentInfo[]
+  /** Command details */
+  commands?: ComponentInfo[]
+  /** Agent details */
+  agents?: ComponentInfo[]
+  /** Hook event names */
+  hooks?: string[]
+  /** MCP server names from plugin.json mcpServers keys */
+  mcpServers?: string[]
+  /** LSP server language IDs from .lsp.json keys */
+  lspServers?: string[]
+}
+
+/**
+ * Component types provided by a plugin (counts only)
  * Detected by scanning plugin directory structure and plugin.json
  * @example
  * { skills: 5, commands: 2, mcpServers: 1 } // Plugin with skills, commands, and MCP
@@ -66,6 +160,8 @@ export interface Plugin {
   gitCommitSha?: string
   /** Component types provided by this plugin (skills, commands, MCP, etc.) */
   components?: PluginComponents
+  /** Detailed component info with names and descriptions */
+  componentsDetailed?: PluginComponentsDetailed
 }
 
 /**
@@ -135,6 +231,12 @@ export interface MarketplacePluginEntry {
   homepage?: string
   tags?: string[]
   keywords?: string[]
+  /** Skill paths from marketplace.json (e.g., ["./skills/xlsx"]) */
+  skills?: string[]
+  /** Agent paths from marketplace.json */
+  agents?: string[]
+  /** Command paths from marketplace.json */
+  commands?: string[]
 }
 
 /**
