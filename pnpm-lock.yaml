@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      fullscreen-ink:
+        specifier: ^0.1.0
+        version: 0.1.0(@types/react@18.3.27)
       ink:
         specifier: ^5.1.0
         version: 5.2.1(@types/react@18.3.27)(react@18.3.1)
@@ -546,6 +549,9 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
+
+  fullscreen-ink@0.1.0:
+    resolution: {integrity: sha512-GkyPG5Y8YxRT6i1Q8mZ0BCMSpgQjdBY+C39DnCUMswBpSypTk0G80rAYs6FoEp6Da2gzAwygXbJbju6GahbrFQ==}
 
   get-east-asian-width@1.4.0:
     resolution: {integrity: sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q==}
@@ -1323,6 +1329,16 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  fullscreen-ink@0.1.0(@types/react@18.3.27):
+    dependencies:
+      ink: 5.2.1(@types/react@18.3.27)(react@18.3.1)
+      react: 18.3.1
+    transitivePeerDependencies:
+      - '@types/react'
+      - bufferutil
+      - react-devtools-core
+      - utf-8-validate
 
   get-east-asian-width@1.4.0: {}
 

@@ -170,6 +170,7 @@ export function loadMarketplaces(): Marketplace[] {
       installLocation: data.installLocation,
       lastUpdated: data.lastUpdated,
       pluginCount,
+      autoUpdate: data.autoUpdate ?? false,
     })
   }
 

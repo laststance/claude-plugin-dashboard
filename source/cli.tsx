@@ -14,7 +14,7 @@
  *   claude-plugin-dashboard help               # Show help
  */
 
-import { render } from 'ink'
+import { withFullScreen } from 'fullscreen-ink'
 import { match, P } from 'ts-pattern'
 import App from './app.js'
 import {
@@ -353,12 +353,9 @@ if (command) {
     process.exit(1)
   }
 
-  const instance = render(<App />)
-
-  // Clear screen when app exits (q key or Ctrl+C)
-  instance.waitUntilExit().then(() => {
-    instance.clear()
-    // Clear entire terminal screen and reset cursor to top-left
-    process.stdout.write('\x1b[2J\x1b[H')
-  })
+  // Use fullscreen-ink for alternate screen buffer management
+  // This prevents rendering artifacts when switching tabs
+  const ink = withFullScreen(<App />)
+  ink.start()
+  ink.waitUntilExit()
 }
