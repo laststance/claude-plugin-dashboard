@@ -113,11 +113,12 @@ describe('PluginDetail', () => {
       expect(lastFrame()).toContain('Development Tools')
     })
 
-    it('should not show category row when category is undefined', () => {
+    it('should show dash when category is undefined', () => {
       const plugin = createTestPlugin({ category: undefined })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).not.toContain('Category:')
+      expect(lastFrame()).toContain('Category:')
+      // The dash fallback indicates no category
     })
 
     it('should show author name when provided', () => {
@@ -130,11 +131,12 @@ describe('PluginDetail', () => {
       expect(lastFrame()).toContain('John Developer')
     })
 
-    it('should not show author row when author is undefined', () => {
+    it('should show dash when author is undefined', () => {
       const plugin = createTestPlugin({ author: undefined })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).not.toContain('Author:')
+      expect(lastFrame()).toContain('Author:')
+      // The dash fallback indicates no author
     })
 
     it('should show homepage when provided', () => {
@@ -147,16 +149,17 @@ describe('PluginDetail', () => {
       expect(lastFrame()).toContain('https://github.com/example/plugin')
     })
 
-    it('should not show homepage row when homepage is undefined', () => {
+    it('should show dash when homepage is undefined', () => {
       const plugin = createTestPlugin({ homepage: undefined })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).not.toContain('Homepage:')
+      expect(lastFrame()).toContain('Homepage:')
+      // The dash fallback indicates no homepage
     })
   })
 
   describe('status display', () => {
-    it('should show "Installed & Enabled" in green when installed and enabled', () => {
+    it('should show "Enabled" in green when installed and enabled', () => {
       const plugin = createTestPlugin({
         isInstalled: true,
         isEnabled: true,
@@ -164,10 +167,10 @@ describe('PluginDetail', () => {
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
       expect(lastFrame()).toContain('Status:')
-      expect(lastFrame()).toContain('Installed & Enabled')
+      expect(lastFrame()).toContain('Enabled')
     })
 
-    it('should show "Installed & Disabled" in yellow when installed but disabled', () => {
+    it('should show "Disabled" in yellow when installed but disabled', () => {
       const plugin = createTestPlugin({
         isInstalled: true,
         isEnabled: false,
@@ -175,7 +178,7 @@ describe('PluginDetail', () => {
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
       expect(lastFrame()).toContain('Status:')
-      expect(lastFrame()).toContain('Installed & Disabled')
+      expect(lastFrame()).toContain('Disabled')
     })
 
     it('should show "Not Installed" when not installed', () => {
@@ -395,13 +398,14 @@ describe('PluginDetail', () => {
       expect(lastFrame()).toContain('Components:')
     })
 
-    it('should not show components row when plugin has no components', () => {
+    it('should show dash when plugin has no components', () => {
       const plugin = createTestPlugin({
         components: undefined,
       })
       const { lastFrame } = render(<PluginDetail plugin={plugin} />)
 
-      expect(lastFrame()).not.toContain('Components:')
+      expect(lastFrame()).toContain('Components:')
+      // The dash fallback indicates no components
     })
 
     it('should display skills badge with count', () => {

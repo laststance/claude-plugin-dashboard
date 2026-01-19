@@ -50,10 +50,22 @@ export default function PluginList({
   const hasMore = endIndex < plugins.length
   const hasPrevious = startIndex > 0
 
+  // Calculate fixed height: each item is 2 lines + 1 line for top indicator + 1 line for bottom indicator
+  // Total fixed lines: visibleCount * 2 (items) + 2 (indicators)
+  const totalLines = visibleCount * 2 + 2
+  // Lines used by items
+  const itemLines = visiblePlugins.length * 2
+  // Lines used by indicators (always rendered, but may be empty)
+  const topIndicatorLine = 1
+  const bottomIndicatorLine = 1
+  // Calculate padding lines needed to maintain fixed height
+  const usedLines = itemLines + topIndicatorLine + bottomIndicatorLine
+  const paddingLines = Math.max(0, totalLines - usedLines)
+
   return (
-    <Box flexDirection="column">
-      {/* Scroll indicator (top) */}
-      {hasPrevious && <Text dimColor>↑ {startIndex} more above</Text>}
+    <Box flexDirection="column" height={totalLines}>
+      {/* Scroll indicator (top) - always takes 1 line */}
+      <Text dimColor>{hasPrevious ? `↑ ${startIndex} more above` : ' '}</Text>
 
       {/* Plugin items */}
       {visiblePlugins.map((plugin, index) => {
@@ -61,7 +73,7 @@ export default function PluginList({
         const isSelected = actualIndex === selectedIndex
 
         return (
-          <Box key={plugin.id} paddingX={1}>
+          <Box key={plugin.id} paddingX={1} height={2}>
             <Box width={2}>
               {isSelected && isFocused ? (
                 <Text color="cyan">{'>'}</Text>
@@ -77,43 +89,53 @@ export default function PluginList({
                 isEnabled={plugin.isEnabled}
               />
             </Box>
-            <Box flexGrow={1} flexDirection="column">
-              <Box gap={1}>
-                <Text
-                  bold
-                  color={
-                    isSelected && isFocused
-                      ? 'cyan'
-                      : isSelected
-                        ? 'gray'
-                        : 'white'
-                  }
-                >
-                  {plugin.name}
+            <Box flexDirection="column" overflow="hidden">
+              <Box height={1}>
+                <Text wrap="truncate">
+                  <Text
+                    bold
+                    color={
+                      isSelected && isFocused
+                        ? 'cyan'
+                        : isSelected
+                          ? 'gray'
+                          : 'white'
+                    }
+                  >
+                    {plugin.name}
+                  </Text>
+                  <Text dimColor> · </Text>
+                  <Text color="gray">{truncate(plugin.marketplace, 20)}</Text>
+                  {plugin.installCount > 0 && (
+                    <>
+                      <Text dimColor> · </Text>
+                      <Text color="gray">
+                        {formatCount(plugin.installCount)} installs
+                      </Text>
+                    </>
+                  )}
                 </Text>
-                <Text dimColor>·</Text>
-                <Text color="gray">{truncate(plugin.marketplace, 20)}</Text>
-                {plugin.installCount > 0 && (
-                  <>
-                    <Text dimColor>·</Text>
-                    <Text color="gray">
-                      {formatCount(plugin.installCount)} installs
-                    </Text>
-                  </>
-                )}
               </Box>
-              <Text dimColor wrap="truncate">
-                {truncate(plugin.description, 60)}
-              </Text>
+              <Box height={1}>
+                <Text dimColor wrap="truncate">
+                  {truncate(plugin.description, 60)}
+                </Text>
+              </Box>
             </Box>
           </Box>
         )
       })}
 
-      {/* Scroll indicator (bottom) */}
-      {hasMore && (
-        <Text dimColor>↓ {plugins.length - endIndex} more below</Text>
-      )}
+      {/* Padding to maintain fixed height */}
+      {paddingLines > 0 &&
+        Array.from({ length: paddingLines }).map((_, i) => (
+          <Text key={`pad-${i}`}> </Text>
+        ))}
+
+      {/* Scroll indicator (bottom) - always takes 1 line */}
+      <Text dimColor>
+        {hasMore ? `↓ ${plugins.length - endIndex} more below` : ' '}
+      </Text>
     </Box>
   )
 }

@@ -1,6 +1,9 @@
 /**
  * PluginDetail component
  * Right panel showing detailed plugin information
+ *
+ * Uses fixed height to prevent layout jumping when switching between plugins
+ * with different amounts of content (e.g., varying component counts).
  */
 
 import { Box, Text } from 'ink'
@@ -11,6 +14,13 @@ import ComponentList, {
   hasAnyDetailedComponents,
 } from './ComponentList.js'
 import type { Plugin } from '../types/index.js'
+
+/**
+ * Fixed height for PluginDetail panel (in terminal lines)
+ * Matches PluginList's visibleCount * 2 + 2 = 26 lines
+ * This ensures both panels have consistent height regardless of content
+ */
+const DETAIL_PANEL_HEIGHT = 26
 
 interface PluginDetailProps {
   plugin: Plugin | null
@@ -29,6 +39,7 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
         padding={1}
         borderStyle="round"
         borderColor="gray"
+        height={DETAIL_PANEL_HEIGHT}
       >
         <Text dimColor>Select a plugin to view details</Text>
       </Box>
@@ -41,6 +52,8 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
       padding={1}
       borderStyle="round"
       borderColor="cyan"
+      height={DETAIL_PANEL_HEIGHT}
+      overflow="hidden"
     >
       {/* Header */}
       <Box marginBottom={1} gap={1}>
@@ -60,26 +73,22 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
         </Text>
       </Box>
 
-      {/* Metadata */}
+      {/* Metadata - ALWAYS render all rows unconditionally to prevent ghost text */}
       <Box flexDirection="column" gap={0}>
         <DetailRow label="Marketplace" value={plugin.marketplace} />
-        <DetailRow label="Version" value={plugin.version} />
+        <DetailRow label="Version" value={plugin.version || '-'} />
         <DetailRow label="Installs" value={formatCount(plugin.installCount)} />
-        {plugin.category && (
-          <DetailRow label="Category" value={plugin.category} />
-        )}
-        {plugin.author && (
-          <DetailRow label="Author" value={plugin.author.name} />
-        )}
-        {plugin.homepage && (
-          <DetailRow label="Homepage" value={plugin.homepage} />
-        )}
-        {plugin.components && (
-          <Box gap={1}>
-            <Text color="gray">Components:</Text>
+        <DetailRow label="Category" value={plugin.category || '-'} />
+        <DetailRow label="Author" value={plugin.author?.name || '-'} />
+        <DetailRow label="Homepage" value={plugin.homepage || '-'} />
+        <Box gap={1}>
+          <Text color="gray">{'Components:'.padEnd(12)}</Text>
+          {plugin.components ? (
             <ComponentBadges components={plugin.components} />
-          </Box>
-        )}
+          ) : (
+            <Text color="gray">-</Text>
+          )}
+        </Box>
       </Box>
 
       {/* Component List Section */}
@@ -104,21 +113,25 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
           <Text>Status:</Text>
           {plugin.isInstalled ? (
             plugin.isEnabled ? (
-              <Text color="green" bold>
-                Installed & Enabled
+              <Text color="green" bold wrap="truncate">
+                Enabled
               </Text>
             ) : (
-              <Text color="yellow" bold>
-                Installed & Disabled
+              <Text color="yellow" bold wrap="truncate">
+                Disabled
               </Text>
             )
           ) : (
-            <Text color="gray">Not Installed</Text>
+            <Text color="gray" wrap="truncate">
+              Not Installed
+            </Text>
           )}
         </Box>
 
         {plugin.installedAt && (
-          <Text dimColor>Installed: {formatDate(plugin.installedAt)}</Text>
+          <Text dimColor wrap="truncate">
+            Installed: {formatDate(plugin.installedAt)}
+          </Text>
         )}
       </Box>
 
@@ -158,13 +171,28 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
 
 /**
  * Single detail row with label and value
+ * Pads both label and value to fixed widths to prevent ghost text artifacts
+ * when content changes between selections
+ * @param label - Label text (e.g., "Marketplace", "Version")
+ * @param value - Value to display
+ * @returns Detail row with fixed-width padding to overwrite previous content
  */
 function DetailRow({ label, value }: { label: string; value: string }) {
+  // Fixed widths to ensure consistent line length and prevent ghost text
+  const LABEL_WIDTH = 12
+  const VALUE_WIDTH = 40
+
+  const paddedLabel = `${label}:`.padEnd(LABEL_WIDTH)
+  // Truncate long values, pad short values with spaces to overwrite old content
+  const truncatedValue =
+    value.length > VALUE_WIDTH ? value.slice(0, VALUE_WIDTH - 1) + '…' : value
+  const paddedValue = truncatedValue.padEnd(VALUE_WIDTH)
+
   return (
-    <Box gap={1}>
-      <Text color="gray">{label}:</Text>
-      <Text>{value}</Text>
-    </Box>
+    <Text>
+      <Text color="gray">{paddedLabel}</Text>
+      <Text>{paddedValue}</Text>
+    </Text>
   )
 }
 
