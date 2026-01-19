@@ -1,22 +1,32 @@
 /**
  * MarketplaceDetail component
- * Right panel showing marketplace information
+ * Right panel showing marketplace information and action menu
  */
 
 import { Box, Text } from 'ink'
 import type { Marketplace } from '../types/index.js'
+import MarketplaceActionMenu from './MarketplaceActionMenu.js'
 
 interface MarketplaceDetailProps {
   marketplace: Marketplace | null
+  showActionMenu?: boolean
+  actionMenuSelectedIndex?: number
 }
 
 /**
  * Displays detailed information about a selected marketplace
+ * Shows action menu when showActionMenu is true
  * @example
- * <MarketplaceDetail marketplace={selectedMarketplace} />
+ * <MarketplaceDetail
+ *   marketplace={selectedMarketplace}
+ *   showActionMenu={state.showMarketplaceActionMenu}
+ *   actionMenuSelectedIndex={state.actionMenuSelectedIndex}
+ * />
  */
 export default function MarketplaceDetail({
   marketplace,
+  showActionMenu = false,
+  actionMenuSelectedIndex = 0,
 }: MarketplaceDetailProps) {
   if (!marketplace) {
     return (
@@ -60,6 +70,10 @@ export default function MarketplaceDetail({
           label="Last Updated"
           value={formatDate(marketplace.lastUpdated)}
         />
+        <DetailRow
+          label="Auto-update"
+          value={marketplace.autoUpdate ? 'Enabled' : 'Disabled'}
+        />
       </Box>
 
       {/* Install location */}
@@ -70,23 +84,30 @@ export default function MarketplaceDetail({
         </Text>
       </Box>
 
-      {/* Actions hint */}
-      <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
-        <Text dimColor>
-          <Text bold color="white">
-            a
-          </Text>{' '}
-          add |{' '}
-          <Text bold color="white">
-            d
-          </Text>{' '}
-          remove |{' '}
-          <Text bold color="white">
-            u
-          </Text>{' '}
-          update
-        </Text>
-      </Box>
+      {/* Action Menu or Actions hint */}
+      {showActionMenu ? (
+        <MarketplaceActionMenu
+          marketplace={marketplace}
+          selectedIndex={actionMenuSelectedIndex}
+        />
+      ) : (
+        <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
+          <Text dimColor>
+            <Text bold color="white">
+              Enter
+            </Text>{' '}
+            actions |{' '}
+            <Text bold color="white">
+              a
+            </Text>{' '}
+            add |{' '}
+            <Text bold color="white">
+              u
+            </Text>{' '}
+            update
+          </Text>
+        </Box>
+      )}
     </Box>
   )
 }

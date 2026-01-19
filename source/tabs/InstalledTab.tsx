@@ -64,9 +64,9 @@ export default function InstalledTab({
       </Box>
 
       {/* Two-column layout */}
-      <Box flexGrow={1}>
+      <Box flexGrow={1} overflow="hidden">
         {/* Left panel: Plugin list */}
-        <Box width="50%" flexDirection="column">
+        <Box width="50%" flexDirection="column" overflow="hidden">
           {plugins.length === 0 ? (
             <Box padding={1} flexDirection="column">
               <Text color="gray">
@@ -89,8 +89,11 @@ export default function InstalledTab({
         </Box>
 
         {/* Right panel: Plugin detail */}
-        <Box width="50%" flexDirection="column">
-          <PluginDetail plugin={selectedPlugin} />
+        <Box width="50%" flexDirection="column" overflow="hidden">
+          <PluginDetail
+            key={selectedPlugin?.id ?? 'none'}
+            plugin={selectedPlugin}
+          />
         </Box>
       </Box>
     </Box>

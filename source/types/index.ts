@@ -199,6 +199,7 @@ export interface Marketplace {
   installLocation: string
   lastUpdated: string
   pluginCount?: number
+  autoUpdate?: boolean
 }
 
 /**
@@ -213,6 +214,7 @@ export interface KnownMarketplacesFile {
     }
     installLocation: string
     lastUpdated: string
+    autoUpdate?: boolean
   }
 }
 
@@ -346,6 +348,10 @@ export interface AppState {
   showAddMarketplaceDialog: boolean
   /** Error message for add marketplace dialog */
   addMarketplaceError: string | null
+  /** Whether marketplace action menu is showing */
+  showMarketplaceActionMenu: boolean
+  /** Selected index in marketplace action menu */
+  actionMenuSelectedIndex: number
 }
 
 /**
@@ -389,3 +395,7 @@ export type Action =
     }
   | { type: 'END_MARKETPLACE_OPERATION' }
   | { type: 'SET_ADD_MARKETPLACE_ERROR'; payload: string | null }
+  | { type: 'SHOW_MARKETPLACE_ACTION_MENU' }
+  | { type: 'HIDE_MARKETPLACE_ACTION_MENU' }
+  | { type: 'SET_ACTION_MENU_INDEX'; payload: number }
+  | { type: 'MOVE_ACTION_MENU_SELECTION'; payload: 'up' | 'down' }

@@ -64,9 +64,9 @@ export default function DiscoverTab({
       </Box>
 
       {/* Two-column layout */}
-      <Box flexGrow={1}>
+      <Box flexGrow={1} overflow="hidden">
         {/* Left panel: Plugin list */}
-        <Box width="50%" flexDirection="column">
+        <Box width="50%" flexDirection="column" overflow="hidden">
           <PluginList
             plugins={plugins}
             selectedIndex={selectedIndex}
@@ -76,8 +76,11 @@ export default function DiscoverTab({
         </Box>
 
         {/* Right panel: Plugin detail */}
-        <Box width="50%" flexDirection="column">
-          <PluginDetail plugin={selectedPlugin} />
+        <Box width="50%" flexDirection="column" overflow="hidden">
+          <PluginDetail
+            key={selectedPlugin?.id ?? 'none'}
+            plugin={selectedPlugin}
+          />
         </Box>
       </Box>
     </Box>

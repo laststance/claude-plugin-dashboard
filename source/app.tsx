@@ -29,6 +29,7 @@ import {
   addMarketplace,
   removeMarketplace,
   updateMarketplace,
+  toggleAutoUpdate,
 } from './services/marketplaceActionsService.js'
 import AddMarketplaceDialog from './components/AddMarketplaceDialog.js'
 import ConfirmDialog from './components/ConfirmDialog.js'
@@ -37,6 +38,7 @@ import type {
   AppState,
   Action,
   Plugin,
+  Marketplace,
   FocusZone,
   MarketplaceOperation,
 } from './types/index.js'
@@ -67,6 +69,8 @@ export const initialState: AppState = {
   confirmRemoveMarketplace: false,
   showAddMarketplaceDialog: false,
   addMarketplaceError: null,
+  showMarketplaceActionMenu: false,
+  actionMenuSelectedIndex: 0,
 }
 
 /**
@@ -115,6 +119,8 @@ export function appReducer(state: AppState, action: Action): AppState {
         selectedIndex: 0,
         searchQuery: '',
         message: null,
+        showMarketplaceActionMenu: false,
+        actionMenuSelectedIndex: 0,
       }
 
     case 'NEXT_TAB':
@@ -125,6 +131,8 @@ export function appReducer(state: AppState, action: Action): AppState {
         selectedIndex: 0,
         searchQuery: '',
         message: null,
+        showMarketplaceActionMenu: false,
+        actionMenuSelectedIndex: 0,
       }
 
     case 'PREV_TAB':
@@ -135,6 +143,8 @@ export function appReducer(state: AppState, action: Action): AppState {
         selectedIndex: 0,
         searchQuery: '',
         message: null,
+        showMarketplaceActionMenu: false,
+        actionMenuSelectedIndex: 0,
       }
 
     case 'SET_FOCUS_ZONE':
@@ -340,6 +350,38 @@ export function appReducer(state: AppState, action: Action): AppState {
         operationMarketplaceId: null,
       }
 
+    case 'SHOW_MARKETPLACE_ACTION_MENU':
+      return {
+        ...state,
+        showMarketplaceActionMenu: true,
+        actionMenuSelectedIndex: 0,
+      }
+
+    case 'HIDE_MARKETPLACE_ACTION_MENU':
+      return {
+        ...state,
+        showMarketplaceActionMenu: false,
+        actionMenuSelectedIndex: 0,
+      }
+
+    case 'SET_ACTION_MENU_INDEX':
+      return {
+        ...state,
+        actionMenuSelectedIndex: action.payload,
+      }
+
+    case 'MOVE_ACTION_MENU_SELECTION': {
+      const maxIndex = 3 // 4 actions: browse, update, autoUpdate, remove
+      const newIndex =
+        action.payload === 'up'
+          ? Math.max(0, state.actionMenuSelectedIndex - 1)
+          : Math.min(maxIndex, state.actionMenuSelectedIndex + 1)
+      return {
+        ...state,
+        actionMenuSelectedIndex: newIndex,
+      }
+    }
+
     default:
       return state
   }
@@ -390,6 +432,22 @@ export function getFilteredPlugins(state: AppState): Plugin[] {
   plugins = sortPlugins(plugins, state.sortBy, state.sortOrder)
 
   return plugins
+}
+
+/**
+ * Get filtered marketplaces based on search query
+ * @param state - Current app state
+ * @returns Filtered array of marketplaces
+ */
+export function getFilteredMarketplaces(state: AppState): Marketplace[] {
+  let marketplaces = state.marketplaces
+
+  // Apply search filter
+  if (state.searchQuery) {
+    marketplaces = searchMarketplaces(state.searchQuery, marketplaces)
+  }
+
+  return marketplaces
 }
 
 /**
@@ -569,6 +627,53 @@ export default function App() {
     }
   }
 
+  /**
+   * Handle toggling auto-update for a marketplace
+   * @param marketplaceId - ID of the marketplace
+   * @param currentValue - Current auto-update state
+   */
+  async function handleToggleAutoUpdate(
+    marketplaceId: string,
+    currentValue: boolean,
+  ) {
+    dispatch({
+      type: 'START_MARKETPLACE_OPERATION',
+      payload: { operation: 'updating', marketplaceId },
+    })
+
+    const result = await toggleAutoUpdate(marketplaceId, currentValue)
+
+    dispatch({ type: 'END_MARKETPLACE_OPERATION' })
+
+    if (result.success) {
+      // Reload marketplaces to get fresh state
+      const marketplaces = loadMarketplaces()
+      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
+      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+    } else {
+      dispatch({
+        type: 'SET_MESSAGE',
+        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+      })
+    }
+  }
+
+  /**
+   * Handle browsing plugins for a specific marketplace
+   * Switches to Discover tab with marketplace filter applied
+   * @param marketplaceId - ID of the marketplace to browse
+   */
+  function handleBrowseMarketplacePlugins(marketplaceId: string) {
+    // Switch to Discover tab
+    dispatch({ type: 'SET_TAB', payload: 'discover' })
+    // Set search query to filter by marketplace
+    dispatch({ type: 'SET_SEARCH_QUERY', payload: marketplaceId })
+    dispatch({
+      type: 'SET_MESSAGE',
+      payload: `Browsing plugins from ${marketplaceId}`,
+    })
+  }
+
   // Keyboard input handling
   useInput((input, key) => {
     // Block all input during operations (plugin or marketplace)
@@ -653,6 +758,59 @@ export default function App() {
           type: 'SET_SEARCH_QUERY',
           payload: state.searchQuery + input,
         })
+        return
+      }
+      return
+    }
+
+    // Handle marketplace action menu
+    if (state.showMarketplaceActionMenu) {
+      const selectedMarketplace =
+        getFilteredMarketplaces(state)[state.selectedIndex]
+      if (!selectedMarketplace) {
+        dispatch({ type: 'HIDE_MARKETPLACE_ACTION_MENU' })
+        return
+      }
+
+      // Up/Down arrow navigation
+      if (key.upArrow || (key.ctrl && input === 'p')) {
+        dispatch({ type: 'MOVE_ACTION_MENU_SELECTION', payload: 'up' })
+        return
+      }
+      if (key.downArrow || (key.ctrl && input === 'n')) {
+        dispatch({ type: 'MOVE_ACTION_MENU_SELECTION', payload: 'down' })
+        return
+      }
+
+      // Execute action on Enter
+      if (key.return) {
+        dispatch({ type: 'HIDE_MARKETPLACE_ACTION_MENU' })
+        const actionIndex = state.actionMenuSelectedIndex
+        if (actionIndex === 0) {
+          // Browse plugins
+          handleBrowseMarketplacePlugins(selectedMarketplace.id)
+        } else if (actionIndex === 1) {
+          // Update marketplace
+          handleUpdateMarketplace(selectedMarketplace.id)
+        } else if (actionIndex === 2) {
+          // Toggle auto-update
+          handleToggleAutoUpdate(
+            selectedMarketplace.id,
+            selectedMarketplace.autoUpdate ?? false,
+          )
+        } else if (actionIndex === 3) {
+          // Remove marketplace (show confirmation)
+          dispatch({
+            type: 'SHOW_CONFIRM_REMOVE_MARKETPLACE',
+            payload: selectedMarketplace.id,
+          })
+        }
+        return
+      }
+
+      // Close menu on Escape
+      if (key.escape) {
+        dispatch({ type: 'HIDE_MARKETPLACE_ACTION_MENU' })
         return
       }
       return
@@ -867,6 +1025,15 @@ export default function App() {
 
     // Marketplace-specific key bindings
     if (state.activeTab === 'marketplaces' && state.focusZone === 'list') {
+      // Open action menu (Enter or m key)
+      if (key.return || input === 'm') {
+        const selectedMarketplace = filteredMarketplaces[state.selectedIndex]
+        if (selectedMarketplace) {
+          dispatch({ type: 'SHOW_MARKETPLACE_ACTION_MENU' })
+        }
+        return
+      }
+
       // Add marketplace (a key)
       if (input === 'a') {
         dispatch({ type: 'SHOW_ADD_MARKETPLACE_DIALOG' })
@@ -994,11 +1161,12 @@ export default function App() {
         isFocused={state.focusZone === 'tabbar'}
       />
 
-      {/* Tab content */}
+      {/* Tab content - key props force React to unmount/remount on tab switch */}
       <Box flexGrow={1} flexDirection="column">
         {match(state.activeTab)
           .with('enabled', () => (
             <EnabledTab
+              key="enabled"
               plugins={enabledPlugins}
               selectedIndex={state.selectedIndex}
               searchQuery={state.searchQuery}
@@ -1007,6 +1175,7 @@ export default function App() {
           ))
           .with('installed', () => (
             <InstalledTab
+              key="installed"
               plugins={installedPlugins}
               selectedIndex={state.selectedIndex}
               searchQuery={state.searchQuery}
@@ -1015,6 +1184,7 @@ export default function App() {
           ))
           .with('discover', () => (
             <DiscoverTab
+              key="discover"
               plugins={filteredPlugins}
               selectedIndex={state.selectedIndex}
               searchQuery={state.searchQuery}
@@ -1025,14 +1195,18 @@ export default function App() {
           ))
           .with('marketplaces', () => (
             <MarketplacesTab
+              key="marketplaces"
               marketplaces={filteredMarketplaces}
               selectedIndex={state.selectedIndex}
               searchQuery={state.searchQuery}
               focusZone={state.focusZone}
+              showActionMenu={state.showMarketplaceActionMenu}
+              actionMenuSelectedIndex={state.actionMenuSelectedIndex}
             />
           ))
           .with('errors', () => (
             <ErrorsTab
+              key="errors"
               errors={state.errors}
               selectedIndex={state.selectedIndex}
             />

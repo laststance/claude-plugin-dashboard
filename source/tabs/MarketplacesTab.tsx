@@ -15,6 +15,10 @@ interface MarketplacesTabProps {
   searchQuery?: string
   /** Current focus zone for keyboard navigation */
   focusZone?: FocusZone
+  /** Whether to show the marketplace action menu */
+  showActionMenu?: boolean
+  /** Selected index in the action menu */
+  actionMenuSelectedIndex?: number
 }
 
 /**
@@ -23,14 +27,25 @@ interface MarketplacesTabProps {
  * @param selectedIndex - Currently selected item index
  * @param searchQuery - Current search query string
  * @param focusZone - Current focus zone for keyboard navigation
+ * @param showActionMenu - Whether to show the action menu
+ * @param actionMenuSelectedIndex - Selected index in action menu
  * @example
- * <MarketplacesTab marketplaces={marketplaces} selectedIndex={0} searchQuery="" focusZone="list" />
+ * <MarketplacesTab
+ *   marketplaces={marketplaces}
+ *   selectedIndex={0}
+ *   searchQuery=""
+ *   focusZone="list"
+ *   showActionMenu={false}
+ *   actionMenuSelectedIndex={0}
+ * />
  */
 export default function MarketplacesTab({
   marketplaces,
   selectedIndex,
   searchQuery = '',
   focusZone = 'list',
+  showActionMenu = false,
+  actionMenuSelectedIndex = 0,
 }: MarketplacesTabProps) {
   const selectedMarketplace = marketplaces[selectedIndex] ?? null
 
@@ -65,9 +80,9 @@ export default function MarketplacesTab({
       </Box>
 
       {/* Two-column layout */}
-      <Box flexGrow={1}>
+      <Box flexGrow={1} overflow="hidden">
         {/* Left panel: Marketplace list */}
-        <Box width="50%" flexDirection="column">
+        <Box width="50%" flexDirection="column" overflow="hidden">
           {marketplaces.length === 0 ? (
             <Box padding={1} flexDirection="column">
               <Text color="gray">
@@ -91,8 +106,12 @@ export default function MarketplacesTab({
         </Box>
 
         {/* Right panel: Marketplace detail */}
-        <Box width="50%" flexDirection="column">
-          <MarketplaceDetail marketplace={selectedMarketplace} />
+        <Box width="50%" flexDirection="column" overflow="hidden">
+          <MarketplaceDetail
+            marketplace={selectedMarketplace}
+            showActionMenu={showActionMenu}
+            actionMenuSelectedIndex={actionMenuSelectedIndex}
+          />
         </Box>
       </Box>
     </Box>

@@ -233,6 +233,43 @@ describe('MarketplaceDetail', () => {
     })
   })
 
+  describe('auto-update status', () => {
+    it('should display Disabled when autoUpdate is false', () => {
+      const marketplace = createMockMarketplace({
+        autoUpdate: false,
+      })
+      const { lastFrame } = render(
+        <MarketplaceDetail marketplace={marketplace} />,
+      )
+
+      expect(lastFrame()).toContain('Auto-update:')
+      expect(lastFrame()).toContain('Disabled')
+    })
+
+    it('should display Enabled when autoUpdate is true', () => {
+      const marketplace = createMockMarketplace({
+        autoUpdate: true,
+      })
+      const { lastFrame } = render(
+        <MarketplaceDetail marketplace={marketplace} />,
+      )
+
+      expect(lastFrame()).toContain('Auto-update:')
+      expect(lastFrame()).toContain('Enabled')
+    })
+
+    it('should display Disabled when autoUpdate is undefined', () => {
+      const marketplace = createMockMarketplace()
+      // autoUpdate is not set in createMockMarketplace by default
+      const { lastFrame } = render(
+        <MarketplaceDetail marketplace={marketplace} />,
+      )
+
+      expect(lastFrame()).toContain('Auto-update:')
+      expect(lastFrame()).toContain('Disabled')
+    })
+  })
+
   describe('action hints', () => {
     it('should render action hints with keybindings', () => {
       const marketplace = createMockMarketplace()
@@ -240,12 +277,42 @@ describe('MarketplaceDetail', () => {
         <MarketplaceDetail marketplace={marketplace} />,
       )
 
+      expect(lastFrame()).toContain('Enter')
+      expect(lastFrame()).toContain('actions')
       expect(lastFrame()).toContain('a')
       expect(lastFrame()).toContain('add')
-      expect(lastFrame()).toContain('d')
-      expect(lastFrame()).toContain('remove')
       expect(lastFrame()).toContain('u')
       expect(lastFrame()).toContain('update')
+    })
+
+    it('should render action menu when showActionMenu is true', () => {
+      const marketplace = createMockMarketplace()
+      const { lastFrame } = render(
+        <MarketplaceDetail
+          marketplace={marketplace}
+          showActionMenu={true}
+          actionMenuSelectedIndex={0}
+        />,
+      )
+
+      expect(lastFrame()).toContain('Browse plugins')
+      expect(lastFrame()).toContain('Update marketplace')
+      expect(lastFrame()).toContain('Enable auto-update')
+      expect(lastFrame()).toContain('Remove marketplace')
+    })
+
+    it('should highlight selected action in menu', () => {
+      const marketplace = createMockMarketplace()
+      const { lastFrame } = render(
+        <MarketplaceDetail
+          marketplace={marketplace}
+          showActionMenu={true}
+          actionMenuSelectedIndex={1}
+        />,
+      )
+
+      // Should show menu with Update marketplace as second option
+      expect(lastFrame()).toContain('Update marketplace')
     })
   })
 })
