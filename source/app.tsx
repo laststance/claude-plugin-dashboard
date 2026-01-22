@@ -20,6 +20,11 @@ import {
   searchMarketplaces,
   sortPlugins,
 } from './services/pluginService.js'
+import {
+  getSkillDetailedInfo,
+  getMarkdownComponentDetailedInfo,
+} from './services/componentService.js'
+import { flattenComponents } from './components/ComponentList.js'
 import { togglePlugin } from './services/settingsService.js'
 import {
   installPlugin,
@@ -41,6 +46,7 @@ import type {
   Marketplace,
   FocusZone,
   MarketplaceOperation,
+  ComponentDetailedInfo,
 } from './types/index.js'
 import packageJson from '../package.json' with { type: 'json' }
 
@@ -71,6 +77,7 @@ export const initialState: AppState = {
   addMarketplaceError: null,
   showMarketplaceActionMenu: false,
   actionMenuSelectedIndex: 0,
+  selectedComponentIndex: 0,
 }
 
 /**
@@ -381,6 +388,37 @@ export function appReducer(state: AppState, action: Action): AppState {
         actionMenuSelectedIndex: newIndex,
       }
     }
+
+    case 'SET_COMPONENT_INDEX':
+      return {
+        ...state,
+        selectedComponentIndex: action.payload,
+      }
+
+    case 'MOVE_COMPONENT_SELECTION': {
+      const newIndex =
+        action.payload === 'up'
+          ? Math.max(0, state.selectedComponentIndex - 1)
+          : Math.min(action.maxIndex, state.selectedComponentIndex + 1)
+      return {
+        ...state,
+        selectedComponentIndex: newIndex,
+      }
+    }
+
+    case 'ENTER_COMPONENT_MODE':
+      return {
+        ...state,
+        focusZone: 'components',
+        selectedComponentIndex: 0,
+      }
+
+    case 'EXIT_COMPONENT_MODE':
+      return {
+        ...state,
+        focusZone: 'list',
+        selectedComponentIndex: 0,
+      }
 
     default:
       return state
@@ -881,6 +919,42 @@ export default function App() {
       return
     }
 
+    // Component focus zone navigation
+    if (state.focusZone === 'components') {
+      // Get current plugin and its components
+      const items = getItemsForTab(state) as Plugin[]
+      const selectedPlugin = items[state.selectedIndex]
+      const components = selectedPlugin
+        ? flattenComponents(selectedPlugin.componentsDetailed)
+        : []
+
+      // Left arrow: exit component mode, go back to list
+      if (key.leftArrow || (key.ctrl && input === 'b') || key.escape) {
+        dispatch({ type: 'EXIT_COMPONENT_MODE' })
+        return
+      }
+
+      // Up/Down: navigate components
+      if (key.upArrow || (key.ctrl && input === 'p')) {
+        dispatch({
+          type: 'MOVE_COMPONENT_SELECTION',
+          payload: 'up',
+          maxIndex: Math.max(0, components.length - 1),
+        })
+        return
+      }
+      if (key.downArrow || (key.ctrl && input === 'n')) {
+        dispatch({
+          type: 'MOVE_COMPONENT_SELECTION',
+          payload: 'down',
+          maxIndex: Math.max(0, components.length - 1),
+        })
+        return
+      }
+
+      return
+    }
+
     // List focus zone navigation (default zone)
     // Up arrow: move up in list or focus search/tabbar at top
     if (key.upArrow || (key.ctrl && input === 'p')) {
@@ -901,6 +975,25 @@ export default function App() {
     if (key.downArrow || (key.ctrl && input === 'n')) {
       dispatch({ type: 'MOVE_SELECTION', payload: 'down' })
       return
+    }
+
+    // Right arrow: enter component mode (on plugin tabs)
+    if (
+      (key.rightArrow || (key.ctrl && input === 'f')) &&
+      state.focusZone === 'list' &&
+      (state.activeTab === 'enabled' ||
+        state.activeTab === 'installed' ||
+        state.activeTab === 'discover')
+    ) {
+      const items = getItemsForTab(state) as Plugin[]
+      const selectedPlugin = items[state.selectedIndex]
+      if (selectedPlugin?.componentsDetailed) {
+        const components = flattenComponents(selectedPlugin.componentsDetailed)
+        if (components.length > 0) {
+          dispatch({ type: 'ENTER_COMPONENT_MODE' })
+          return
+        }
+      }
     }
 
     // Tab key: next tab (from list zone)
@@ -1144,6 +1237,60 @@ export default function App() {
     ? searchMarketplaces(state.searchQuery, state.marketplaces)
     : state.marketplaces
 
+  // Get selected component detail for component focus mode
+  const getSelectedComponentDetail = (): ComponentDetailedInfo | null => {
+    if (state.focusZone !== 'components') return null
+
+    // Get the appropriate plugins for current tab
+    const currentPlugins = match(state.activeTab)
+      .with('enabled', () => enabledPlugins)
+      .with('installed', () => installedPlugins)
+      .with('discover', () => filteredPlugins)
+      .otherwise(() => [] as Plugin[])
+
+    const selectedPlugin = currentPlugins[state.selectedIndex]
+    if (!selectedPlugin?.componentsDetailed) return null
+
+    const components = flattenComponents(selectedPlugin.componentsDetailed)
+    const selectedComponent = components[state.selectedComponentIndex]
+    if (!selectedComponent) return null
+
+    // Get install path for the plugin
+    const installPath = selectedPlugin.isInstalled
+      ? `${process.env['HOME']}/.claude/plugins/cache/${selectedPlugin.marketplace}/${selectedPlugin.name}/${selectedPlugin.version}`
+      : null
+
+    if (!installPath) return null
+
+    // Fetch detailed info based on component type
+    if (selectedComponent.info.type === 'skill') {
+      return (
+        getSkillDetailedInfo(installPath, selectedComponent.info.name) ?? null
+      )
+    } else if (
+      selectedComponent.info.type === 'command' ||
+      selectedComponent.info.type === 'agent'
+    ) {
+      return (
+        getMarkdownComponentDetailedInfo(
+          installPath,
+          selectedComponent.info.name,
+          selectedComponent.info.type,
+        ) ?? null
+      )
+    }
+
+    // For other types (mcp, lsp, hook), return basic info
+    return {
+      name: selectedComponent.info.name,
+      type: selectedComponent.info.type,
+      description: selectedComponent.info.description,
+    }
+  }
+
+  const selectedComponentDetail = getSelectedComponentDetail()
+  const componentFocusMode = state.focusZone === 'components'
+
   return (
     <Box flexDirection="column" padding={1}>
       {/* Header */}
@@ -1171,6 +1318,9 @@ export default function App() {
               selectedIndex={state.selectedIndex}
               searchQuery={state.searchQuery}
               focusZone={state.focusZone}
+              componentFocusMode={componentFocusMode}
+              selectedComponentIndex={state.selectedComponentIndex}
+              selectedComponentDetail={selectedComponentDetail}
             />
           ))
           .with('installed', () => (
@@ -1180,6 +1330,9 @@ export default function App() {
               selectedIndex={state.selectedIndex}
               searchQuery={state.searchQuery}
               focusZone={state.focusZone}
+              componentFocusMode={componentFocusMode}
+              selectedComponentIndex={state.selectedComponentIndex}
+              selectedComponentDetail={selectedComponentDetail}
             />
           ))
           .with('discover', () => (
@@ -1191,6 +1344,9 @@ export default function App() {
               sortBy={state.sortBy}
               sortOrder={state.sortOrder}
               focusZone={state.focusZone}
+              componentFocusMode={componentFocusMode}
+              selectedComponentIndex={state.selectedComponentIndex}
+              selectedComponentDetail={selectedComponentDetail}
             />
           ))
           .with('marketplaces', () => (

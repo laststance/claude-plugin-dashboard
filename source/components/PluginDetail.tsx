@@ -4,6 +4,8 @@
  *
  * Uses fixed height to prevent layout jumping when switching between plugins
  * with different amounts of content (e.g., varying component counts).
+ *
+ * Supports component focus mode for navigating and viewing component details
  */
 
 import { Box, Text } from 'ink'
@@ -13,7 +15,8 @@ import ComponentList, {
   hasAnyCountComponents,
   hasAnyDetailedComponents,
 } from './ComponentList.js'
-import type { Plugin } from '../types/index.js'
+import ComponentDetail from './ComponentDetail.js'
+import type { ComponentDetailedInfo, Plugin } from '../types/index.js'
 
 /**
  * Fixed height for PluginDetail panel (in terminal lines)
@@ -24,14 +27,30 @@ const DETAIL_PANEL_HEIGHT = 26
 
 interface PluginDetailProps {
   plugin: Plugin | null
+  /** Whether component focus mode is active */
+  componentFocusMode?: boolean
+  /** Currently selected component index */
+  selectedComponentIndex?: number
+  /** Selected component's detailed info (fetched from service) */
+  selectedComponentDetail?: ComponentDetailedInfo | null
 }
 
 /**
  * Displays detailed information about a selected plugin
+ * Supports component focus mode for drilling into component details
  * @example
- * <PluginDetail plugin={selectedPlugin} />
+ * <PluginDetail
+ *   plugin={selectedPlugin}
+ *   componentFocusMode={true}
+ *   selectedComponentIndex={0}
+ * />
  */
-export default function PluginDetail({ plugin }: PluginDetailProps) {
+export default function PluginDetail({
+  plugin,
+  componentFocusMode = false,
+  selectedComponentIndex = 0,
+  selectedComponentDetail = null,
+}: PluginDetailProps) {
   if (!plugin) {
     return (
       <Box
@@ -102,8 +121,20 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
           <ComponentList
             components={plugin.components}
             componentsDetailed={plugin.componentsDetailed}
-            maxItems={3}
+            maxItems={componentFocusMode ? 99 : 3}
+            isFocused={componentFocusMode}
+            selectedIndex={selectedComponentIndex}
           />
+        </>
+      )}
+
+      {/* Component Detail Panel (shown when component is selected) */}
+      {componentFocusMode && selectedComponentDetail && (
+        <>
+          <Box marginY={1}>
+            <Text dimColor>{'─'.repeat(36)}</Text>
+          </Box>
+          <ComponentDetail component={selectedComponentDetail} maxHeight={8} />
         </>
       )}
 
@@ -143,7 +174,18 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
         paddingX={1}
         flexDirection="column"
       >
-        {plugin.isInstalled ? (
+        {componentFocusMode ? (
+          <Text dimColor>
+            <Text bold color="white">
+              ↑↓
+            </Text>{' '}
+            navigate |{' '}
+            <Text bold color="white">
+              ←
+            </Text>{' '}
+            back to plugin
+          </Text>
+        ) : plugin.isInstalled ? (
           <Box flexDirection="column">
             <Text dimColor>
               <Text bold color="white">
@@ -153,7 +195,11 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
               <Text bold color="white">
                 u
               </Text>{' '}
-              uninstall
+              uninstall |{' '}
+              <Text bold color="white">
+                →
+              </Text>{' '}
+              components
             </Text>
           </Box>
         ) : (
@@ -161,7 +207,11 @@ export default function PluginDetail({ plugin }: PluginDetailProps) {
             <Text bold color="white">
               i
             </Text>{' '}
-            install
+            install |{' '}
+            <Text bold color="white">
+              →
+            </Text>{' '}
+            components
           </Text>
         )}
       </Box>

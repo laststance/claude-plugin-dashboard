@@ -18,6 +18,19 @@ import type {
 } from '../types/index.js'
 
 /**
+ * Flattened component item for selection tracking
+ * Combines type and info for easy navigation
+ */
+export interface FlatComponentItem {
+  /** Component info */
+  info: ComponentInfo
+  /** Category label */
+  category: string
+  /** Category color */
+  color: string
+}
+
+/**
  * Props for ComponentList
  */
 export interface ComponentListProps {
@@ -27,6 +40,12 @@ export interface ComponentListProps {
   componentsDetailed?: PluginComponentsDetailed
   /** Maximum visible items per category (default: 3) */
   maxItems?: number
+  /** Whether this list is focused for selection */
+  isFocused?: boolean
+  /** Currently selected index in flattened list */
+  selectedIndex?: number
+  /** Callback when selection changes */
+  onSelect?: (item: FlatComponentItem, index: number) => void
 }
 
 /**
@@ -99,20 +118,61 @@ const CATEGORY_CONFIGS: CategoryConfig[] = [
 const DEFAULT_MAX_ITEMS = 3
 
 /**
+ * Flatten all components from detailed info into a single array for selection
+ * @param componentsDetailed - Detailed component info
+ * @returns Array of FlatComponentItem for navigation
+ */
+export function flattenComponents(
+  componentsDetailed?: PluginComponentsDetailed,
+): FlatComponentItem[] {
+  if (!componentsDetailed) return []
+
+  const items: FlatComponentItem[] = []
+
+  // Process each category in order
+  for (const config of CATEGORY_CONFIGS) {
+    const detailedItems = componentsDetailed[config.detailedKey]
+    if (!detailedItems?.length) continue
+
+    if (isComponentInfoArray(detailedItems)) {
+      for (const info of detailedItems) {
+        items.push({ info, category: config.label, color: config.color })
+      }
+    } else {
+      // String array (mcpServers, lspServers, hooks) - convert to ComponentInfo
+      for (const name of detailedItems) {
+        items.push({
+          info: { name, type: config.type },
+          category: config.label,
+          color: config.color,
+        })
+      }
+    }
+  }
+
+  return items
+}
+
+/**
  * Displays component details in a collapsible list
  * Shows names when available, falls back to counts
+ * Supports selection mode when isFocused is true
  * @param props - ComponentListProps
  * @returns React node or null if no components
  * @example
  * <ComponentList
  *   componentsDetailed={{ skills: [{ name: 'xlsx', type: 'skill' }] }}
  *   maxItems={3}
+ *   isFocused={true}
+ *   selectedIndex={0}
  * />
  */
 export default function ComponentList({
   components,
   componentsDetailed,
   maxItems = DEFAULT_MAX_ITEMS,
+  isFocused = false,
+  selectedIndex = 0,
 }: ComponentListProps): React.ReactNode {
   // No data at all
   if (!components && !componentsDetailed) {
@@ -128,6 +188,9 @@ export default function ComponentList({
     return null
   }
 
+  // Track current index across all categories
+  let currentFlatIndex = 0
+
   return (
     <Box flexDirection="column">
       {/* Header */}
@@ -135,6 +198,7 @@ export default function ComponentList({
         <Text color="cyan" bold>
           ── Components ──
         </Text>
+        {isFocused && <Text dimColor> (↑↓ select, ← back)</Text>}
       </Box>
 
       {/* Categories */}
@@ -151,6 +215,8 @@ export default function ComponentList({
         if (detailedItems && detailedItems.length > 0) {
           // Type guard: detailedItems could be ComponentInfo[] or string[]
           if (isComponentInfoArray(detailedItems)) {
+            const startIndex = currentFlatIndex
+            currentFlatIndex += detailedItems.length
             return (
               <CategorySection
                 key={config.detailedKey}
@@ -158,10 +224,15 @@ export default function ComponentList({
                 color={config.color}
                 items={detailedItems}
                 maxItems={maxItems}
+                isFocused={isFocused}
+                selectedIndex={selectedIndex}
+                startIndex={startIndex}
               />
             )
           } else {
             // String array (mcpServers, lspServers, hooks)
+            const startIndex = currentFlatIndex
+            currentFlatIndex += detailedItems.length
             return (
               <CategorySectionSimple
                 key={config.detailedKey}
@@ -169,6 +240,9 @@ export default function ComponentList({
                 color={config.color}
                 items={detailedItems}
                 maxItems={maxItems}
+                isFocused={isFocused}
+                selectedIndex={selectedIndex}
+                startIndex={startIndex}
               />
             )
           }
@@ -216,11 +290,18 @@ interface CategorySectionProps {
   items: ComponentInfo[]
   /** Maximum visible items */
   maxItems: number
+  /** Whether parent list is focused */
+  isFocused?: boolean
+  /** Selected index in the flattened list */
+  selectedIndex?: number
+  /** Start index of this category in the flattened list */
+  startIndex?: number
 }
 
 /**
  * Single category section with collapsible ComponentInfo items
  * Shows first N items, then "+M more..." for overflow
+ * Supports selection highlighting when focused
  * @returns React node for the category section
  */
 function CategorySection({
@@ -228,9 +309,14 @@ function CategorySection({
   color,
   items,
   maxItems,
+  isFocused = false,
+  selectedIndex = 0,
+  startIndex = 0,
 }: CategorySectionProps): React.ReactNode {
-  const visibleItems = items.slice(0, maxItems)
-  const remainingCount = items.length - maxItems
+  // When focused, show all items to allow selection
+  // When not focused, limit to maxItems
+  const visibleItems = isFocused ? items : items.slice(0, maxItems)
+  const remainingCount = isFocused ? 0 : items.length - maxItems
 
   return (
     <Box flexDirection="column">
@@ -240,17 +326,24 @@ function CategorySection({
         </Text>
         <Text dimColor> ({items.length})</Text>
       </Box>
-      {visibleItems.map((item) => (
-        <Text key={item.name}>
-          {'  '}• {item.name}
-          {item.description && (
-            <Text dimColor> - {truncate(item.description, 30)}</Text>
-          )}
-        </Text>
-      ))}
+      {visibleItems.map((item, index) => {
+        const flatIndex = startIndex + index
+        const isSelected = isFocused && flatIndex === selectedIndex
+        return (
+          <Box key={item.name} height={1}>
+            <Text inverse={isSelected}>
+              {isSelected ? ' ▶ ' : '   '}
+              {item.name}
+              {item.description && !isSelected && (
+                <Text dimColor> - {truncate(item.description, 25)}</Text>
+              )}
+            </Text>
+          </Box>
+        )
+      })}
       {remainingCount > 0 && (
         <Text dimColor>
-          {'  '}└─ +{remainingCount} more...
+          {'   '}└─ +{remainingCount} more...
         </Text>
       )}
     </Box>
@@ -269,10 +362,17 @@ interface CategorySectionSimpleProps {
   items: string[]
   /** Maximum visible items */
   maxItems: number
+  /** Whether parent list is focused */
+  isFocused?: boolean
+  /** Selected index in the flattened list */
+  selectedIndex?: number
+  /** Start index of this category in the flattened list */
+  startIndex?: number
 }
 
 /**
  * Category section for simple string arrays (mcpServers, lspServers, hooks)
+ * Supports selection highlighting when focused
  * @returns React node for the category section
  */
 function CategorySectionSimple({
@@ -280,9 +380,13 @@ function CategorySectionSimple({
   color,
   items,
   maxItems,
+  isFocused = false,
+  selectedIndex = 0,
+  startIndex = 0,
 }: CategorySectionSimpleProps): React.ReactNode {
-  const visibleItems = items.slice(0, maxItems)
-  const remainingCount = items.length - maxItems
+  // When focused, show all items to allow selection
+  const visibleItems = isFocused ? items : items.slice(0, maxItems)
+  const remainingCount = isFocused ? 0 : items.length - maxItems
 
   return (
     <Box flexDirection="column">
@@ -292,14 +396,21 @@ function CategorySectionSimple({
         </Text>
         <Text dimColor> ({items.length})</Text>
       </Box>
-      {visibleItems.map((item) => (
-        <Text key={item}>
-          {'  '}• {item}
-        </Text>
-      ))}
+      {visibleItems.map((item, index) => {
+        const flatIndex = startIndex + index
+        const isSelected = isFocused && flatIndex === selectedIndex
+        return (
+          <Box key={item} height={1}>
+            <Text inverse={isSelected}>
+              {isSelected ? ' ▶ ' : '   '}
+              {item}
+            </Text>
+          </Box>
+        )
+      })}
       {remainingCount > 0 && (
         <Text dimColor>
-          {'  '}└─ +{remainingCount} more...
+          {'   '}└─ +{remainingCount} more...
         </Text>
       )}
     </Box>

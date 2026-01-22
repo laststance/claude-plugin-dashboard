@@ -45,6 +45,12 @@ function getBaseHints(
       { key: 'h', action: 'help' },
       { key: 'q or ^C', action: 'quit' },
     ])
+    .with('components', () => [
+      { key: '↑/↓', action: 'select component' },
+      { key: '←', action: 'back to plugin' },
+      { key: 'h', action: 'help' },
+      { key: 'q or ^C', action: 'quit' },
+    ])
     .exhaustive()
 }
 

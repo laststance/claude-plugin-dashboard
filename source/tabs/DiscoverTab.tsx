@@ -8,7 +8,12 @@ import PluginList from '../components/PluginList.js'
 import PluginDetail from '../components/PluginDetail.js'
 import SearchInput from '../components/SearchInput.js'
 import SortDropdown from '../components/SortDropdown.js'
-import type { Plugin, AppState, FocusZone } from '../types/index.js'
+import type {
+  Plugin,
+  AppState,
+  FocusZone,
+  ComponentDetailedInfo,
+} from '../types/index.js'
 
 interface DiscoverTabProps {
   plugins: Plugin[]
@@ -18,6 +23,12 @@ interface DiscoverTabProps {
   sortOrder: AppState['sortOrder']
   /** Current focus zone for keyboard navigation */
   focusZone?: FocusZone
+  /** Whether component focus mode is active */
+  componentFocusMode?: boolean
+  /** Currently selected component index */
+  selectedComponentIndex?: number
+  /** Selected component's detailed info */
+  selectedComponentDetail?: ComponentDetailedInfo | null
 }
 
 /**
@@ -39,6 +50,9 @@ export default function DiscoverTab({
   sortBy,
   sortOrder,
   focusZone = 'list',
+  componentFocusMode = false,
+  selectedComponentIndex = 0,
+  selectedComponentDetail = null,
 }: DiscoverTabProps) {
   const selectedPlugin = plugins[selectedIndex] ?? null
 
@@ -80,6 +94,9 @@ export default function DiscoverTab({
           <PluginDetail
             key={selectedPlugin?.id ?? 'none'}
             plugin={selectedPlugin}
+            componentFocusMode={componentFocusMode}
+            selectedComponentIndex={selectedComponentIndex}
+            selectedComponentDetail={selectedComponentDetail}
           />
         </Box>
       </Box>

@@ -70,6 +70,29 @@ export interface ComponentInfo {
 }
 
 /**
+ * Extended component information with full SKILL.md parsing
+ * Used for Component detail view in PluginDetail panel
+ *
+ * @example
+ * {
+ *   name: "sentry-code-review",
+ *   description: "Analyze and resolve Sentry comments...",
+ *   type: "skill",
+ *   allowedTools: ["Read", "Edit", "Write", "Bash", "Grep"],
+ *   fullDescription: "Full markdown body content...",
+ *   filePath: "/Users/.../skills/sentry-code-review/SKILL.md"
+ * }
+ */
+export interface ComponentDetailedInfo extends ComponentInfo {
+  /** Allowed tools from SKILL.md frontmatter (allowed-tools field) */
+  allowedTools?: string[]
+  /** Full markdown body content (after frontmatter) */
+  fullDescription?: string
+  /** Absolute file path for reference */
+  filePath?: string
+}
+
+/**
  * Detailed component information for a plugin
  * Extends PluginComponents (counts) with actual component names and descriptions
  *
@@ -295,7 +318,7 @@ export interface Settings {
  * Focus zones for keyboard navigation
  * Defines which UI area currently has keyboard focus
  */
-export type FocusZone = 'tabbar' | 'search' | 'list'
+export type FocusZone = 'tabbar' | 'search' | 'list' | 'components'
 
 /**
  * Marketplace operation types
@@ -352,6 +375,8 @@ export interface AppState {
   showMarketplaceActionMenu: boolean
   /** Selected index in marketplace action menu */
   actionMenuSelectedIndex: number
+  /** Selected component index within the current plugin */
+  selectedComponentIndex: number
 }
 
 /**
@@ -399,3 +424,11 @@ export type Action =
   | { type: 'HIDE_MARKETPLACE_ACTION_MENU' }
   | { type: 'SET_ACTION_MENU_INDEX'; payload: number }
   | { type: 'MOVE_ACTION_MENU_SELECTION'; payload: 'up' | 'down' }
+  | { type: 'SET_COMPONENT_INDEX'; payload: number }
+  | {
+      type: 'MOVE_COMPONENT_SELECTION'
+      payload: 'up' | 'down'
+      maxIndex: number
+    }
+  | { type: 'ENTER_COMPONENT_MODE' }
+  | { type: 'EXIT_COMPONENT_MODE' }

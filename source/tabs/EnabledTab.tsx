@@ -7,7 +7,11 @@ import { Box, Text } from 'ink'
 import PluginList from '../components/PluginList.js'
 import PluginDetail from '../components/PluginDetail.js'
 import SearchInput from '../components/SearchInput.js'
-import type { Plugin, FocusZone } from '../types/index.js'
+import type {
+  Plugin,
+  FocusZone,
+  ComponentDetailedInfo,
+} from '../types/index.js'
 
 interface EnabledTabProps {
   plugins: Plugin[]
@@ -15,6 +19,12 @@ interface EnabledTabProps {
   searchQuery?: string
   /** Current focus zone for keyboard navigation */
   focusZone?: FocusZone
+  /** Whether component focus mode is active */
+  componentFocusMode?: boolean
+  /** Currently selected component index */
+  selectedComponentIndex?: number
+  /** Selected component's detailed info */
+  selectedComponentDetail?: ComponentDetailedInfo | null
 }
 
 /**
@@ -32,6 +42,9 @@ export default function EnabledTab({
   selectedIndex,
   searchQuery = '',
   focusZone = 'list',
+  componentFocusMode = false,
+  selectedComponentIndex = 0,
+  selectedComponentDetail = null,
 }: EnabledTabProps) {
   // Plugins are already filtered by parent, use directly
   const selectedPlugin = plugins[selectedIndex] ?? null
@@ -87,6 +100,9 @@ export default function EnabledTab({
           <PluginDetail
             key={selectedPlugin?.id ?? 'none'}
             plugin={selectedPlugin}
+            componentFocusMode={componentFocusMode}
+            selectedComponentIndex={selectedComponentIndex}
+            selectedComponentDetail={selectedComponentDetail}
           />
         </Box>
       </Box>

@@ -9,6 +9,7 @@ import * as path from 'node:path'
 import { readJsonFile, directoryExists, fileExists } from './fileService.js'
 import type {
   ComponentInfo,
+  ComponentDetailedInfo,
   PluginComponents,
   PluginComponentsDetailed,
 } from '../types/index.js'
@@ -208,6 +209,155 @@ function parseSkillMdDescription(skillMdPath: string): string | undefined {
       /^---\n[\s\S]*?description:\s*["']?(.+?)["']?\s*\n[\s\S]*?---/m,
     )
     return match?.[1]?.trim()
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Result of parsing full SKILL.md content
+ */
+interface SkillMdFullResult {
+  description?: string
+  allowedTools?: string[]
+  fullDescription?: string
+}
+
+/**
+ * Parse full SKILL.md content including frontmatter and body
+ * Extracts description, allowed-tools, and full markdown body
+ * @param skillMdPath - Path to SKILL.md file
+ * @returns Parsed content or undefined if file doesn't exist
+ * @example
+ * parseSkillMdFull('/path/to/SKILL.md')
+ * // => { description: "...", allowedTools: ["Read", "Edit"], fullDescription: "..." }
+ */
+export function parseSkillMdFull(
+  skillMdPath: string,
+): SkillMdFullResult | undefined {
+  if (!fileExists(skillMdPath)) {
+    return undefined
+  }
+
+  try {
+    const content = fs.readFileSync(skillMdPath, 'utf-8')
+    const result: SkillMdFullResult = {}
+
+    // Check for frontmatter
+    if (!content.startsWith('---')) {
+      // No frontmatter, entire content is the body
+      result.fullDescription = content.trim()
+      return result
+    }
+
+    // Find closing frontmatter delimiter
+    const endIndex = content.indexOf('---', 3)
+    if (endIndex === -1) {
+      // Malformed frontmatter
+      result.fullDescription = content.trim()
+      return result
+    }
+
+    const frontmatter = content.substring(3, endIndex)
+    const body = content.substring(endIndex + 3).trim()
+
+    // Parse description from frontmatter
+    const descMatch = frontmatter.match(/description:\s*["']?(.+?)["']?\s*$/m)
+    if (descMatch?.[1]) {
+      result.description = descMatch[1].trim()
+    }
+
+    // Parse allowed-tools from frontmatter (can be array or comma-separated)
+    const toolsMatch = frontmatter.match(/allowed-tools:\s*\[([^\]]+)\]/m)
+    if (toolsMatch?.[1]) {
+      // Array format: allowed-tools: [Read, Edit, Write]
+      result.allowedTools = toolsMatch[1]
+        .split(',')
+        .map((t) => t.trim().replace(/["']/g, ''))
+        .filter(Boolean)
+    } else {
+      // Try single line format: allowed-tools: Read, Edit
+      const singleMatch = frontmatter.match(/allowed-tools:\s*(.+)$/m)
+      if (singleMatch?.[1]) {
+        result.allowedTools = singleMatch[1]
+          .split(',')
+          .map((t) => t.trim().replace(/["']/g, ''))
+          .filter(Boolean)
+      }
+    }
+
+    // Body is the content after frontmatter
+    if (body) {
+      result.fullDescription = body
+    }
+
+    return result
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Get detailed info for a specific skill component
+ * @param installPath - Plugin install path
+ * @param skillName - Name of the skill directory
+ * @returns ComponentDetailedInfo with full SKILL.md content
+ * @example
+ * getSkillDetailedInfo('/path/to/plugin', 'sentry-code-review')
+ * // => { name: 'sentry-code-review', type: 'skill', allowedTools: [...], ... }
+ */
+export function getSkillDetailedInfo(
+  installPath: string,
+  skillName: string,
+): ComponentDetailedInfo | undefined {
+  const skillMdPath = path.join(installPath, 'skills', skillName, 'SKILL.md')
+
+  if (!fileExists(skillMdPath)) {
+    return undefined
+  }
+
+  const parsed = parseSkillMdFull(skillMdPath)
+
+  return {
+    name: skillName,
+    type: 'skill',
+    description: parsed?.description,
+    allowedTools: parsed?.allowedTools,
+    fullDescription: parsed?.fullDescription,
+    filePath: skillMdPath,
+  }
+}
+
+/**
+ * Get detailed info for a command or agent markdown file
+ * @param installPath - Plugin install path
+ * @param componentName - Name of the component (without .md)
+ * @param type - Component type ('command' or 'agent')
+ * @returns ComponentDetailedInfo with full content
+ */
+export function getMarkdownComponentDetailedInfo(
+  installPath: string,
+  componentName: string,
+  type: 'command' | 'agent',
+): ComponentDetailedInfo | undefined {
+  const subdir = type === 'command' ? 'commands' : 'agents'
+  const filePath = path.join(installPath, subdir, `${componentName}.md`)
+
+  if (!fileExists(filePath)) {
+    return undefined
+  }
+
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8')
+    const description = parseFirstLineDescription(filePath)
+
+    return {
+      name: componentName,
+      type,
+      description,
+      fullDescription: content,
+      filePath,
+    }
   } catch {
     return undefined
   }
