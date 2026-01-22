@@ -349,7 +349,8 @@ export function getMarkdownComponentDetailedInfo(
 
   try {
     const content = fs.readFileSync(filePath, 'utf-8')
-    const description = parseFirstLineDescription(filePath)
+    // Reuse content instead of reading file twice
+    const description = parseFirstLineDescriptionFromContent(content)
 
     return {
       name: componentName,
@@ -401,6 +402,55 @@ function getMarkdownFileDetails(
 }
 
 /**
+ * Parse first non-empty line of content as description
+ * Properly skips YAML frontmatter block and strips heading markers
+ * @param content - Markdown content string
+ * @returns First non-frontmatter, non-empty line or undefined
+ * @example
+ * parseFirstLineDescriptionFromContent("---\nname: test\n---\n# My Title\n")
+ * // => "My Title"
+ */
+function parseFirstLineDescriptionFromContent(
+  content: string,
+): string | undefined {
+  const lines = content.split('\n')
+  let inFrontmatter = false
+  let frontmatterClosed = false
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    // Detect frontmatter delimiter
+    if (trimmed === '---') {
+      if (!inFrontmatter && !frontmatterClosed) {
+        // Opening delimiter
+        inFrontmatter = true
+        continue
+      } else if (inFrontmatter) {
+        // Closing delimiter
+        inFrontmatter = false
+        frontmatterClosed = true
+        continue
+      }
+    }
+
+    // Skip lines inside frontmatter
+    if (inFrontmatter) {
+      continue
+    }
+
+    // Skip empty lines
+    if (!trimmed) {
+      continue
+    }
+
+    // Found first content line - remove heading markers and return
+    return trimmed.replace(/^#+\s*/, '')
+  }
+  return undefined
+}
+
+/**
  * Parse first non-empty line of a markdown file as description
  * Properly skips YAML frontmatter block and strips heading markers
  * @param filePath - Path to markdown file
@@ -412,41 +462,7 @@ function getMarkdownFileDetails(
 function parseFirstLineDescription(filePath: string): string | undefined {
   try {
     const content = fs.readFileSync(filePath, 'utf-8')
-    const lines = content.split('\n')
-    let inFrontmatter = false
-    let frontmatterClosed = false
-
-    for (const line of lines) {
-      const trimmed = line.trim()
-
-      // Detect frontmatter delimiter
-      if (trimmed === '---') {
-        if (!inFrontmatter && !frontmatterClosed) {
-          // Opening delimiter
-          inFrontmatter = true
-          continue
-        } else if (inFrontmatter) {
-          // Closing delimiter
-          inFrontmatter = false
-          frontmatterClosed = true
-          continue
-        }
-      }
-
-      // Skip lines inside frontmatter
-      if (inFrontmatter) {
-        continue
-      }
-
-      // Skip empty lines
-      if (!trimmed) {
-        continue
-      }
-
-      // Found first content line - remove heading markers and return
-      return trimmed.replace(/^#+\s*/, '')
-    }
-    return undefined
+    return parseFirstLineDescriptionFromContent(content)
   } catch {
     return undefined
   }

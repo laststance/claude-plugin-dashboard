@@ -4,6 +4,7 @@
  * Shows name, type, description, allowed tools, and full content
  */
 
+import * as path from 'node:path'
 import { Box, Text } from 'ink'
 import type { ComponentDetailedInfo, ComponentType } from '../types/index.js'
 
@@ -60,6 +61,9 @@ export default function ComponentDetail({
   component,
   maxHeight = 10,
 }: ComponentDetailProps): React.ReactNode {
+  // Safe content height calculation (at least 1 line)
+  const contentHeight = Math.max(1, maxHeight - 6)
+
   if (!component) {
     return (
       <Box
@@ -129,9 +133,9 @@ export default function ComponentDetail({
           <Text color="cyan" bold>
             ── Content ──
           </Text>
-          <Box height={maxHeight - 6} overflow="hidden">
+          <Box height={contentHeight} overflow="hidden">
             <Text dimColor wrap="truncate">
-              {truncateContent(component.fullDescription, maxHeight - 6)}
+              {truncateContent(component.fullDescription, contentHeight)}
             </Text>
           </Box>
         </Box>
@@ -141,18 +145,19 @@ export default function ComponentDetail({
 }
 
 /**
- * Shorten file path for display
+ * Shorten file path for display (cross-platform)
  * Shows only the last few path components
  * @param filePath - Full file path
- * @returns Shortened path
+ * @returns Shortened path with forward slashes for consistent display
  */
 function shortenPath(filePath: string): string {
-  const parts = filePath.split('/')
+  const normalized = path.normalize(filePath)
+  const parts = normalized.split(path.sep)
   // Show last 4 components: .../skills/component-name/SKILL.md
   if (parts.length > 4) {
     return '.../' + parts.slice(-4).join('/')
   }
-  return filePath
+  return parts.join('/')
 }
 
 /**

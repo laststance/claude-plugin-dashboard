@@ -3,7 +3,9 @@
  * Interactive TUI to browse and manage Claude Code plugins
  */
 
-import { useEffect, useReducer } from 'react'
+import { useEffect, useMemo, useReducer } from 'react'
+import * as os from 'node:os'
+import * as path from 'node:path'
 import { Box, Text, useInput, useApp } from 'ink'
 import { match, P } from 'ts-pattern'
 import TabBar, { getNextTab } from './components/TabBar.js'
@@ -1196,26 +1198,7 @@ export default function App() {
     }
   })
 
-  // Loading state
-  if (state.loading) {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Text>Loading plugins...</Text>
-      </Box>
-    )
-  }
-
-  // Error state
-  if (state.error) {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Text color="red">Error: {state.error}</Text>
-        <Text dimColor>Press q to exit</Text>
-      </Box>
-    )
-  }
-
-  // Get filtered data for current tab
+  // Get filtered data for current tab (must be before early returns for useMemo dependency)
   const filteredPlugins = getFilteredPlugins(state)
 
   // Apply search filter to enabled plugins
@@ -1237,8 +1220,9 @@ export default function App() {
     ? searchMarketplaces(state.searchQuery, state.marketplaces)
     : state.marketplaces
 
-  // Get selected component detail for component focus mode
-  const getSelectedComponentDetail = (): ComponentDetailedInfo | null => {
+  // Get selected component detail for component focus mode (memoized)
+  // Must be called before conditional returns to maintain hooks order
+  const selectedComponentDetail = useMemo((): ComponentDetailedInfo | null => {
     if (state.focusZone !== 'components') return null
 
     // Get the appropriate plugins for current tab
@@ -1255,9 +1239,17 @@ export default function App() {
     const selectedComponent = components[state.selectedComponentIndex]
     if (!selectedComponent) return null
 
-    // Get install path for the plugin
+    // Get install path for the plugin (cross-platform)
     const installPath = selectedPlugin.isInstalled
-      ? `${process.env['HOME']}/.claude/plugins/cache/${selectedPlugin.marketplace}/${selectedPlugin.name}/${selectedPlugin.version}`
+      ? path.join(
+          os.homedir(),
+          '.claude',
+          'plugins',
+          'cache',
+          selectedPlugin.marketplace ?? '',
+          selectedPlugin.name,
+          selectedPlugin.version ?? '',
+        )
       : null
 
     if (!installPath) return null
@@ -1286,10 +1278,35 @@ export default function App() {
       type: selectedComponent.info.type,
       description: selectedComponent.info.description,
     }
+  }, [
+    state.focusZone,
+    state.activeTab,
+    state.selectedIndex,
+    state.selectedComponentIndex,
+    enabledPlugins,
+    installedPlugins,
+    filteredPlugins,
+  ])
+  const componentFocusMode = state.focusZone === 'components'
+
+  // Loading state
+  if (state.loading) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Text>Loading plugins...</Text>
+      </Box>
+    )
   }
 
-  const selectedComponentDetail = getSelectedComponentDetail()
-  const componentFocusMode = state.focusZone === 'components'
+  // Error state
+  if (state.error) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Text color="red">Error: {state.error}</Text>
+        <Text dimColor>Press q to exit</Text>
+      </Box>
+    )
+  }
 
   return (
     <Box flexDirection="column" padding={1}>

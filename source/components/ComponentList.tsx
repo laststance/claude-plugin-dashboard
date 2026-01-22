@@ -121,6 +121,9 @@ const DEFAULT_MAX_ITEMS = 3
  * Flatten all components from detailed info into a single array for selection
  * @param componentsDetailed - Detailed component info
  * @returns Array of FlatComponentItem for navigation
+ * @example
+ * flattenComponents({ skills: [{ name: 'xlsx', type: 'skill' }] })
+ * // => [{ info: { name: 'xlsx', type: 'skill' }, category: 'Skills', color: 'magenta' }]
  */
 export function flattenComponents(
   componentsDetailed?: PluginComponentsDetailed,

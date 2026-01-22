@@ -59,6 +59,7 @@ function getBaseHints(
  * @example
  * <KeyHints focusZone="list" />
  * <KeyHints focusZone="search" extraHints={[{ key: 'i', action: 'install' }]} />
+ * <KeyHints focusZone="components" />
  */
 export default function KeyHints({
   extraHints,
