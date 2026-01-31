@@ -43,8 +43,14 @@ const TYPE_LABELS: Record<ComponentType, string> = {
 }
 
 /**
+ * Compact mode threshold - show minimal info when height is small
+ */
+const COMPACT_MODE_THRESHOLD = 4
+
+/**
  * Displays detailed component information in a panel
  * Used when user selects a component from the ComponentList
+ * Supports compact mode when maxHeight <= 4 (shows only name, type, description)
  * @param props - ComponentDetailProps
  * @returns React node
  * @example
@@ -63,6 +69,7 @@ export default function ComponentDetail({
 }: ComponentDetailProps): React.ReactNode {
   // Safe content height calculation (at least 1 line)
   const contentHeight = Math.max(1, maxHeight - 6)
+  const isCompact = maxHeight <= COMPACT_MODE_THRESHOLD
 
   if (!component) {
     return (
@@ -81,6 +88,39 @@ export default function ComponentDetail({
   const typeColor = TYPE_COLORS[component.type] || 'white'
   const typeLabel = TYPE_LABELS[component.type] || component.type
 
+  // Compact mode: minimal info only (name, type, description)
+  if (isCompact) {
+    return (
+      <Box
+        flexDirection="column"
+        borderStyle="single"
+        borderColor="cyan"
+        paddingX={1}
+        height={maxHeight}
+        overflow="hidden"
+      >
+        {/* Header: Name + Type Badge */}
+        <Box height={1}>
+          <Text bold color="white">
+            📦 {truncateString(component.name, 20)}
+          </Text>
+          <Text> </Text>
+          <Text color={typeColor} bold>
+            [{typeLabel}]
+          </Text>
+        </Box>
+
+        {/* Description (truncated) */}
+        <Box height={1}>
+          <Text wrap="truncate" dimColor>
+            {component.description || 'No description'}
+          </Text>
+        </Box>
+      </Box>
+    )
+  }
+
+  // Full mode: show all details
   return (
     <Box
       flexDirection="column"
@@ -142,6 +182,19 @@ export default function ComponentDetail({
       )}
     </Box>
   )
+}
+
+/**
+ * Truncate string to max length with ellipsis
+ * @param str - String to truncate
+ * @param maxLength - Maximum length
+ * @returns Truncated string
+ */
+function truncateString(str: string, maxLength: number): string {
+  if (str.length <= maxLength) {
+    return str
+  }
+  return str.slice(0, maxLength - 1) + '…'
 }
 
 /**

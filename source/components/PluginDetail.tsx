@@ -25,6 +25,23 @@ import type { ComponentDetailedInfo, Plugin } from '../types/index.js'
  */
 const DETAIL_PANEL_HEIGHT = 26
 
+/**
+ * Layout height constants for consistent rendering
+ * Total budget: 26 lines (DETAIL_PANEL_HEIGHT)
+ *
+ * Normal mode:
+ *   Border/Padding: 4 | Header: 2 | Description: 2 | Metadata: 7
+ *   Separator: 1 | ComponentList: 4 | Status: 3 | Actions: 3
+ *
+ * Focused mode (hide Status/Actions to maximize component browsing):
+ *   Border/Padding: 4 | Header: 2 | Description: 2 | Metadata: 7
+ *   Separator: 1 | ComponentList: 7 | ComponentDetail: 3
+ */
+const COMPONENT_LIST_HEIGHT_NORMAL = 4
+const COMPONENT_LIST_HEIGHT_FOCUSED = 7
+const COMPONENT_DETAIL_HEIGHT = 3
+const COMPONENT_LIST_VISIBLE_COUNT = 5
+
 interface PluginDetailProps {
   plugin: Plugin | null
   /** Whether component focus mode is active */
@@ -110,111 +127,114 @@ export default function PluginDetail({
         </Box>
       </Box>
 
-      {/* Component List Section */}
+      {/* Component List Section - Fixed height to prevent overflow */}
       {((plugin.components && hasAnyCountComponents(plugin.components)) ||
         (plugin.componentsDetailed &&
           hasAnyDetailedComponents(plugin.componentsDetailed))) && (
         <>
-          <Box marginY={1}>
+          <Box marginY={1} height={1}>
             <Text dimColor>{'─'.repeat(36)}</Text>
           </Box>
-          <ComponentList
-            components={plugin.components}
-            componentsDetailed={plugin.componentsDetailed}
-            maxItems={componentFocusMode ? 99 : 3}
-            isFocused={componentFocusMode}
-            selectedIndex={selectedComponentIndex}
-          />
+          <Box
+            height={
+              componentFocusMode
+                ? COMPONENT_LIST_HEIGHT_FOCUSED
+                : COMPONENT_LIST_HEIGHT_NORMAL
+            }
+            overflow="hidden"
+          >
+            <ComponentList
+              components={plugin.components}
+              componentsDetailed={plugin.componentsDetailed}
+              maxItems={3}
+              isFocused={componentFocusMode}
+              selectedIndex={selectedComponentIndex}
+              visibleCount={COMPONENT_LIST_VISIBLE_COUNT}
+            />
+          </Box>
         </>
       )}
 
-      {/* Component Detail Panel (shown when component is selected) */}
+      {/* Component Detail Panel (shown when component is selected in focus mode) */}
       {componentFocusMode && selectedComponentDetail && (
-        <>
-          <Box marginY={1}>
-            <Text dimColor>{'─'.repeat(36)}</Text>
-          </Box>
-          <ComponentDetail component={selectedComponentDetail} maxHeight={8} />
-        </>
+        <Box height={COMPONENT_DETAIL_HEIGHT} overflow="hidden">
+          <ComponentDetail
+            component={selectedComponentDetail}
+            maxHeight={COMPONENT_DETAIL_HEIGHT}
+          />
+        </Box>
       )}
 
-      {/* Status */}
-      <Box marginTop={1} flexDirection="column">
-        <Box gap={1}>
-          <Text>Status:</Text>
-          {plugin.isInstalled ? (
-            plugin.isEnabled ? (
-              <Text color="green" bold wrap="truncate">
-                Enabled
-              </Text>
+      {/* Status - Hidden in focus mode to save space */}
+      {!componentFocusMode && (
+        <Box marginTop={1} flexDirection="column">
+          <Box gap={1}>
+            <Text>Status:</Text>
+            {plugin.isInstalled ? (
+              plugin.isEnabled ? (
+                <Text color="green" bold wrap="truncate">
+                  Enabled
+                </Text>
+              ) : (
+                <Text color="yellow" bold wrap="truncate">
+                  Disabled
+                </Text>
+              )
             ) : (
-              <Text color="yellow" bold wrap="truncate">
-                Disabled
+              <Text color="gray" wrap="truncate">
+                Not Installed
               </Text>
-            )
-          ) : (
-            <Text color="gray" wrap="truncate">
-              Not Installed
+            )}
+          </Box>
+
+          {plugin.installedAt && (
+            <Text dimColor wrap="truncate">
+              Installed: {formatDate(plugin.installedAt)}
             </Text>
           )}
         </Box>
+      )}
 
-        {plugin.installedAt && (
-          <Text dimColor wrap="truncate">
-            Installed: {formatDate(plugin.installedAt)}
-          </Text>
-        )}
-      </Box>
-
-      {/* Actions hint */}
-      <Box
-        marginTop={1}
-        borderStyle="single"
-        borderColor="gray"
-        paddingX={1}
-        flexDirection="column"
-      >
-        {componentFocusMode ? (
-          <Text dimColor>
-            <Text bold color="white">
-              ↑↓
-            </Text>{' '}
-            navigate |{' '}
-            <Text bold color="white">
-              ←
-            </Text>{' '}
-            back to plugin
-          </Text>
-        ) : plugin.isInstalled ? (
-          <Box flexDirection="column">
+      {/* Actions hint - Hidden in focus mode, navigation hint shown in ComponentList header */}
+      {!componentFocusMode && (
+        <Box
+          marginTop={1}
+          borderStyle="single"
+          borderColor="gray"
+          paddingX={1}
+          flexDirection="column"
+        >
+          {plugin.isInstalled ? (
+            <Box flexDirection="column">
+              <Text dimColor>
+                <Text bold color="white">
+                  Space
+                </Text>{' '}
+                {plugin.isEnabled ? 'disable' : 'enable'} |{' '}
+                <Text bold color="white">
+                  u
+                </Text>{' '}
+                uninstall |{' '}
+                <Text bold color="white">
+                  →
+                </Text>{' '}
+                components
+              </Text>
+            </Box>
+          ) : (
             <Text dimColor>
               <Text bold color="white">
-                Space
+                i
               </Text>{' '}
-              {plugin.isEnabled ? 'disable' : 'enable'} |{' '}
-              <Text bold color="white">
-                u
-              </Text>{' '}
-              uninstall |{' '}
+              install |{' '}
               <Text bold color="white">
                 →
               </Text>{' '}
               components
             </Text>
-          </Box>
-        ) : (
-          <Text dimColor>
-            <Text bold color="white">
-              i
-            </Text>{' '}
-            install |{' '}
-            <Text bold color="white">
-              →
-            </Text>{' '}
-            components
-          </Text>
-        )}
-      </Box>
+          )}
+        </Box>
+      )}
     </Box>
   )
 }

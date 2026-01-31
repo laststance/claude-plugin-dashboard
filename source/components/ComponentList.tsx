@@ -46,6 +46,8 @@ export interface ComponentListProps {
   selectedIndex?: number
   /** Callback when selection changes */
   onSelect?: (item: FlatComponentItem, index: number) => void
+  /** Number of visible items in virtual scroll viewport (default: 5) */
+  visibleCount?: number
 }
 
 /**
@@ -157,9 +159,15 @@ export function flattenComponents(
 }
 
 /**
+ * Default visible count for virtual scroll
+ */
+const DEFAULT_VISIBLE_COUNT = 5
+
+/**
  * Displays component details in a collapsible list
  * Shows names when available, falls back to counts
  * Supports selection mode when isFocused is true
+ * Uses virtual scrolling when focused to prevent layout overflow
  * @param props - ComponentListProps
  * @returns React node or null if no components
  * @example
@@ -168,6 +176,7 @@ export function flattenComponents(
  *   maxItems={3}
  *   isFocused={true}
  *   selectedIndex={0}
+ *   visibleCount={5}
  * />
  */
 export default function ComponentList({
@@ -176,6 +185,7 @@ export default function ComponentList({
   maxItems = DEFAULT_MAX_ITEMS,
   isFocused = false,
   selectedIndex = 0,
+  visibleCount = DEFAULT_VISIBLE_COUNT,
 }: ComponentListProps): React.ReactNode {
   // No data at all
   if (!components && !componentsDetailed) {
@@ -191,6 +201,19 @@ export default function ComponentList({
     return null
   }
 
+  // When focused, use flat virtual scroll approach
+  if (isFocused && hasDetailedData) {
+    const flatItems = flattenComponents(componentsDetailed)
+    return (
+      <VirtualScrollList
+        items={flatItems}
+        selectedIndex={selectedIndex}
+        visibleCount={visibleCount}
+      />
+    )
+  }
+
+  // Normal mode: show collapsed categories
   // Track current index across all categories
   let currentFlatIndex = 0
 
@@ -201,7 +224,6 @@ export default function ComponentList({
         <Text color="cyan" bold>
           ── Components ──
         </Text>
-        {isFocused && <Text dimColor> (↑↓ select, ← back)</Text>}
       </Box>
 
       {/* Categories */}
@@ -227,7 +249,7 @@ export default function ComponentList({
                 color={config.color}
                 items={detailedItems}
                 maxItems={maxItems}
-                isFocused={isFocused}
+                isFocused={false}
                 selectedIndex={selectedIndex}
                 startIndex={startIndex}
               />
@@ -243,7 +265,7 @@ export default function ComponentList({
                 color={config.color}
                 items={detailedItems}
                 maxItems={maxItems}
-                isFocused={isFocused}
+                isFocused={false}
                 selectedIndex={selectedIndex}
                 startIndex={startIndex}
               />
@@ -277,6 +299,92 @@ export default function ComponentList({
 
         return null
       })}
+    </Box>
+  )
+}
+
+/**
+ * Props for VirtualScrollList
+ */
+interface VirtualScrollListProps {
+  /** Flattened component items */
+  items: FlatComponentItem[]
+  /** Currently selected index */
+  selectedIndex: number
+  /** Number of visible items in viewport */
+  visibleCount: number
+}
+
+/**
+ * Virtual scroll list for focused mode
+ * Shows a fixed viewport with scroll indicators
+ * @param props - VirtualScrollListProps
+ * @returns React node
+ */
+function VirtualScrollList({
+  items,
+  selectedIndex,
+  visibleCount,
+}: VirtualScrollListProps): React.ReactNode {
+  const totalItems = items.length
+
+  // Calculate scroll window centered on selection
+  const halfVisible = Math.floor(visibleCount / 2)
+  let startIndex = Math.max(0, selectedIndex - halfVisible)
+  const endIndex = Math.min(totalItems, startIndex + visibleCount)
+  // Adjust start if we hit the end
+  startIndex = Math.max(0, endIndex - visibleCount)
+
+  const visibleItems = items.slice(startIndex, endIndex)
+  const itemsAbove = startIndex
+  const itemsBelow = totalItems - endIndex
+
+  // Height: 1 header + visibleCount items + 1 indicator (always show space for indicator)
+  const listHeight = 1 + visibleCount + 1
+
+  return (
+    <Box flexDirection="column" height={listHeight}>
+      {/* Header */}
+      <Box height={1}>
+        <Text color="cyan" bold>
+          ── Components ──
+        </Text>
+        <Text dimColor> (↑↓ select, ← back)</Text>
+      </Box>
+
+      {/* Virtual scroll viewport */}
+      {visibleItems.map((item, idx) => {
+        const actualIndex = startIndex + idx
+        const isSelected = actualIndex === selectedIndex
+        return (
+          <Box key={`${item.category}-${item.info.name}`} height={1}>
+            <Text inverse={isSelected}>
+              {isSelected ? ' ▶ ' : '   '}
+              <Text color={item.color}>[{item.category.charAt(0)}]</Text>{' '}
+              {item.info.name}
+            </Text>
+          </Box>
+        )
+      })}
+
+      {/* Scroll indicator */}
+      <Box height={1}>
+        {itemsAbove > 0 && itemsBelow > 0 ? (
+          <Text dimColor>
+            {'   '}↑{itemsAbove} more · ↓{itemsBelow} more
+          </Text>
+        ) : itemsAbove > 0 ? (
+          <Text dimColor>
+            {'   '}↑{itemsAbove} more
+          </Text>
+        ) : itemsBelow > 0 ? (
+          <Text dimColor>
+            {'   '}↓{itemsBelow} more
+          </Text>
+        ) : (
+          <Text> </Text>
+        )}
+      </Box>
     </Box>
   )
 }
