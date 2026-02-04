@@ -5,6 +5,7 @@
 
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Plugin, PluginError } from '../../types/index.js'
+import { setTab, nextTab, prevTab } from './uiSlice.js'
 
 /**
  * Plugin operation type
@@ -200,6 +201,19 @@ export const pluginSlice = createSlice({
     exitComponentMode: (state) => {
       state.selectedComponentIndex = 0
     },
+  },
+  extraReducers: (builder) => {
+    // Reset selectedIndex when tab changes
+    builder
+      .addCase(setTab, (state) => {
+        state.selectedIndex = 0
+      })
+      .addCase(nextTab, (state) => {
+        state.selectedIndex = 0
+      })
+      .addCase(prevTab, (state) => {
+        state.selectedIndex = 0
+      })
   },
 })
 

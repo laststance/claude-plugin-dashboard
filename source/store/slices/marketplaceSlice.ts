@@ -5,6 +5,7 @@
 
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Marketplace } from '../../types/index.js'
+import { setTab, nextTab, prevTab } from './uiSlice.js'
 
 /**
  * Marketplace operation type
@@ -178,6 +179,22 @@ export const marketplaceSlice = createSlice({
         )
       }
     },
+  },
+  extraReducers: (builder) => {
+    // Reset action menu state when tab changes
+    builder
+      .addCase(setTab, (state) => {
+        state.showMarketplaceActionMenu = false
+        state.actionMenuSelectedIndex = 0
+      })
+      .addCase(nextTab, (state) => {
+        state.showMarketplaceActionMenu = false
+        state.actionMenuSelectedIndex = 0
+      })
+      .addCase(prevTab, (state) => {
+        state.showMarketplaceActionMenu = false
+        state.actionMenuSelectedIndex = 0
+      })
   },
 })
 

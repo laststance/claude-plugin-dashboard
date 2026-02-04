@@ -32,9 +32,22 @@ vi.mock('./services/pluginActionsService.js', () => ({
 }))
 
 // Import after mocks
+import { Provider } from 'react-redux'
 import App from './app.js'
+import { createStore } from './store/index.js'
 import * as pluginService from './services/pluginService.js'
 import * as settingsService from './services/settingsService.js'
+
+/**
+ * Wrap App component with Redux Provider for testing
+ */
+function AppWithProvider() {
+  return (
+    <Provider store={createStore()}>
+      <App />
+    </Provider>
+  )
+}
 
 /**
  * Create mock plugin for testing
@@ -89,14 +102,14 @@ describe('App component', () => {
 
   describe('initial rendering', () => {
     it('should render header with title', async () => {
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       expect(lastFrame()).toContain('Plugin Dashboard')
     })
 
     it('should render version number', async () => {
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       // Version is dynamically loaded from package.json - verify format
@@ -106,7 +119,7 @@ describe('App component', () => {
 
   describe('data loading', () => {
     it('should render tab bar after loading', async () => {
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       expect(lastFrame()).toContain('Discover')
@@ -122,7 +135,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       expect(lastFrame()).toContain('Enabled plugins')
@@ -138,14 +151,14 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       expect(lastFrame()).toContain('my-enabled-plugin')
     })
 
     it('should render key hints footer', async () => {
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       expect(lastFrame()).toContain('quit')
@@ -158,7 +171,7 @@ describe('App component', () => {
         throw new Error('Failed to read plugins')
       })
 
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       expect(lastFrame()).toContain('Error')
@@ -170,7 +183,7 @@ describe('App component', () => {
         throw new Error('Test error')
       })
 
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       expect(lastFrame()).toContain('q to exit')
@@ -179,7 +192,7 @@ describe('App component', () => {
 
   describe('keyboard navigation', () => {
     it('should navigate to next tab with Tab key', async () => {
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press Tab to go to next tab
@@ -190,7 +203,7 @@ describe('App component', () => {
     })
 
     it('should navigate to next tab with right arrow when tabbar is focused', async () => {
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate up to tabbar zone (from list -> search -> tabbar)
@@ -222,7 +235,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Initial selection is 0 (first plugin)
@@ -251,7 +264,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press Ctrl+N
@@ -268,7 +281,7 @@ describe('App component', () => {
         createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to discover tab (2 tabs with Tab key)
@@ -290,7 +303,7 @@ describe('App component', () => {
         createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (2 tabs with Tab key)
@@ -316,7 +329,7 @@ describe('App component', () => {
         createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (2 tabs with Tab key)
@@ -342,7 +355,7 @@ describe('App component', () => {
         createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (2 tabs with Tab key)
@@ -375,7 +388,7 @@ describe('App component', () => {
           createMockPlugin({ id: 'p2@m', name: 'beta-plugin' }),
         ])
 
-        const { lastFrame, stdin } = render(<App />)
+        const { lastFrame, stdin } = render(<AppWithProvider />)
         await waitForRender()
 
         // Navigate to Discover tab (2 tabs with Tab key)
@@ -400,7 +413,7 @@ describe('App component', () => {
         createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (2 tabs right from Enabled)
@@ -429,7 +442,7 @@ describe('App component', () => {
         createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (2 tabs right from Enabled)
@@ -451,7 +464,7 @@ describe('App component', () => {
         createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (2 tabs right from Enabled)
@@ -475,7 +488,7 @@ describe('App component', () => {
         createMockMarketplace({ id: 'm1', name: 'Test Marketplace' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to marketplaces tab (3 tabs right from enabled)
@@ -491,7 +504,7 @@ describe('App component', () => {
     })
 
     it('should show errors tab content', async () => {
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to errors tab (4 tabs right from enabled)
@@ -526,7 +539,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Move down first
@@ -556,7 +569,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Move down first
@@ -570,7 +583,7 @@ describe('App component', () => {
     })
 
     it('should navigate to previous tab with left arrow when tabbar is focused', async () => {
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate up to tabbar zone first (from list -> search -> tabbar)
@@ -591,7 +604,7 @@ describe('App component', () => {
     })
 
     it('should navigate with tab key', async () => {
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press Tab to go to next tab
@@ -601,7 +614,7 @@ describe('App component', () => {
     })
 
     it('should navigate to next tab with Ctrl+F (Emacs-style) when tabbar is focused', async () => {
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate up to tabbar zone first (from list -> search -> tabbar)
@@ -617,7 +630,7 @@ describe('App component', () => {
     })
 
     it('should navigate to previous tab with Ctrl+B (Emacs-style) when tabbar is focused', async () => {
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate up to tabbar zone first (from list -> search -> tabbar)
@@ -649,7 +662,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Installed tab (where isInstalled: true, isEnabled: false plugins are visible)
@@ -674,7 +687,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press enter to toggle
@@ -694,7 +707,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press i to install
@@ -713,7 +726,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (where non-installed plugins are visible)
@@ -740,7 +753,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (where non-installed plugins are visible)
@@ -768,7 +781,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press Enter on installed plugin (toggles enabled state)
@@ -788,7 +801,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to discover tab (2 tabs with Tab key)
@@ -814,7 +827,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press u to uninstall
@@ -834,7 +847,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press u to show confirmation
@@ -858,7 +871,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press u to show confirmation
@@ -882,7 +895,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press u to show confirmation
@@ -909,7 +922,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press u to show confirmation
@@ -938,7 +951,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to installed tab
@@ -967,7 +980,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Toggle with space (should trigger error)
@@ -988,7 +1001,7 @@ describe('App component', () => {
         createMockPlugin({ id: 'p1@m', name: 'plugin-1' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab (2 tabs right from Enabled)
@@ -1022,7 +1035,7 @@ describe('App component', () => {
         createMockMarketplace({ id: 'm1', name: 'Test Marketplace' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to marketplaces tab (3 tabs right from enabled)
@@ -1057,7 +1070,7 @@ describe('App component', () => {
         createMockMarketplace({ id: 'm1', name: 'Test Marketplace' }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Test each tab
@@ -1096,7 +1109,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Press h to show help
@@ -1117,7 +1130,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Show help
@@ -1141,7 +1154,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Show help
@@ -1165,7 +1178,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Show help
@@ -1190,7 +1203,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       // h help hint is now shown in footer (KeyHints component)
@@ -1210,7 +1223,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame } = render(<App />)
+      const { lastFrame } = render(<AppWithProvider />)
       await waitForRender()
 
       // Should show Enter toggle hint
@@ -1227,7 +1240,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab
@@ -1251,7 +1264,7 @@ describe('App component', () => {
         }),
       ])
 
-      const { lastFrame, stdin } = render(<App />)
+      const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitForRender()
 
       // Navigate to Discover tab and enter search mode

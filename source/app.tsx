@@ -3,7 +3,7 @@
  * Interactive TUI to browse and manage Claude Code plugins
  */
 
-import { useEffect, useMemo, useReducer } from 'react'
+import { useEffect, useMemo } from 'react'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { Box, Text, useInput, useApp } from 'ink'
@@ -41,6 +41,44 @@ import {
 import AddMarketplaceDialog from './components/AddMarketplaceDialog.js'
 import ConfirmDialog from './components/ConfirmDialog.js'
 import HelpOverlay from './components/HelpOverlay.js'
+import {
+  useAppDispatch,
+  useAppSelector,
+  // UI actions
+  setTab,
+  nextTab,
+  prevTab,
+  setFocusZone,
+  toggleHelp,
+  setSearchQuery,
+  setSort,
+  setMessage,
+  // Plugin actions
+  setPlugins,
+  setError,
+  setSelectedIndex,
+  moveSelection,
+  togglePluginEnabled,
+  startOperation,
+  endOperation,
+  showConfirmUninstall,
+  hideConfirmUninstall,
+  moveComponentSelection,
+  enterComponentMode,
+  exitComponentMode,
+  // Marketplace actions
+  setMarketplaces,
+  startMarketplaceOperation,
+  endMarketplaceOperation,
+  showConfirmRemoveMarketplace,
+  hideConfirmRemoveMarketplace,
+  showAddMarketplaceDialog,
+  hideAddMarketplaceDialog,
+  setAddMarketplaceError,
+  showMarketplaceActionMenu as showMarketplaceActionMenuAction,
+  hideMarketplaceActionMenu,
+  moveActionMenuSelection,
+} from './store/index.js'
 import type {
   AppState,
   Action,
@@ -495,7 +533,40 @@ export function getFilteredMarketplaces(state: AppState): Marketplace[] {
  */
 export default function App() {
   const { exit } = useApp()
-  const [state, dispatch] = useReducer(appReducer, initialState)
+  const dispatch = useAppDispatch()
+
+  // Select state from Redux slices
+  const ui = useAppSelector((s) => s.ui)
+  const pluginState = useAppSelector((s) => s.plugins)
+  const marketplaceState = useAppSelector((s) => s.marketplaces)
+
+  // Combine into AppState-compatible object for existing helper functions
+  const state: AppState = {
+    activeTab: ui.activeTab,
+    focusZone: ui.focusZone,
+    showHelp: ui.showHelp,
+    searchQuery: ui.searchQuery,
+    sortBy: ui.sortBy,
+    sortOrder: ui.sortOrder,
+    message: ui.message,
+    plugins: pluginState.plugins,
+    errors: pluginState.errors,
+    loading: pluginState.loading,
+    error: pluginState.error,
+    selectedIndex: pluginState.selectedIndex,
+    operation: pluginState.operation,
+    operationPluginId: pluginState.operationPluginId,
+    confirmUninstall: pluginState.confirmUninstall,
+    selectedComponentIndex: pluginState.selectedComponentIndex,
+    marketplaces: marketplaceState.marketplaces,
+    marketplaceOperation: marketplaceState.marketplaceOperation,
+    operationMarketplaceId: marketplaceState.operationMarketplaceId,
+    confirmRemoveMarketplace: marketplaceState.confirmRemoveMarketplace,
+    showAddMarketplaceDialog: marketplaceState.showAddMarketplaceDialog,
+    addMarketplaceError: marketplaceState.addMarketplaceError,
+    showMarketplaceActionMenu: marketplaceState.showMarketplaceActionMenu,
+    actionMenuSelectedIndex: marketplaceState.actionMenuSelectedIndex,
+  }
 
   // Load data on mount
   useEffect(() => {
@@ -503,13 +574,14 @@ export default function App() {
       const plugins = loadAllPlugins()
       const marketplaces = loadMarketplaces()
 
-      dispatch({ type: 'SET_PLUGINS', payload: plugins })
-      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
+      dispatch(setPlugins(plugins))
+      dispatch(setMarketplaces(marketplaces))
     } catch (error) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: error instanceof Error ? error.message : 'Failed to load data',
-      })
+      dispatch(
+        setError(
+          error instanceof Error ? error.message : 'Failed to load data',
+        ),
+      )
     }
   }, [])
 
@@ -517,25 +589,23 @@ export default function App() {
    * Handle plugin installation
    */
   async function handleInstall(pluginId: string) {
-    dispatch({
-      type: 'START_OPERATION',
-      payload: { operation: 'installing', pluginId },
-    })
+    dispatch(startOperation({ operation: 'installing', pluginId }))
 
     const result = await installPlugin(pluginId)
 
-    dispatch({ type: 'END_OPERATION' })
+    dispatch(endOperation())
 
     if (result.success) {
       // Reload plugins to get fresh state
       const plugins = loadAllPlugins()
-      dispatch({ type: 'SET_PLUGINS', payload: plugins })
-      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+      dispatch(setPlugins(plugins))
+      dispatch(setMessage(`✅ ${result.message}`))
     } else {
-      dispatch({
-        type: 'SET_MESSAGE',
-        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
-      })
+      dispatch(
+        setMessage(
+          `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+        ),
+      )
     }
   }
 
@@ -543,25 +613,23 @@ export default function App() {
    * Handle plugin uninstallation
    */
   async function handleUninstall(pluginId: string) {
-    dispatch({
-      type: 'START_OPERATION',
-      payload: { operation: 'uninstalling', pluginId },
-    })
+    dispatch(startOperation({ operation: 'uninstalling', pluginId }))
 
     const result = await uninstallPlugin(pluginId)
 
-    dispatch({ type: 'END_OPERATION' })
+    dispatch(endOperation())
 
     if (result.success) {
       // Reload plugins to get fresh state
       const plugins = loadAllPlugins()
-      dispatch({ type: 'SET_PLUGINS', payload: plugins })
-      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+      dispatch(setPlugins(plugins))
+      dispatch(setMessage(`✅ ${result.message}`))
     } else {
-      dispatch({
-        type: 'SET_MESSAGE',
-        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
-      })
+      dispatch(
+        setMessage(
+          `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+        ),
+      )
     }
   }
 
@@ -570,32 +638,26 @@ export default function App() {
    * @param source - Marketplace source (e.g., "owner/repo", URL, or local path)
    */
   async function handleAddMarketplace(source: string) {
-    dispatch({
-      type: 'START_MARKETPLACE_OPERATION',
-      payload: { operation: 'adding' },
-    })
+    dispatch(startMarketplaceOperation({ operation: 'adding' }))
 
     const result = await addMarketplace(source)
 
-    dispatch({ type: 'END_MARKETPLACE_OPERATION' })
+    dispatch(endMarketplaceOperation())
 
     if (result.success) {
-      dispatch({ type: 'HIDE_ADD_MARKETPLACE_DIALOG' })
+      dispatch(hideAddMarketplaceDialog())
       // Reload marketplaces to get fresh state
       const marketplaces = loadMarketplaces()
-      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
+      dispatch(setMarketplaces(marketplaces))
       // Also reload plugins as new marketplace may have plugins
       const plugins = loadAllPlugins()
-      dispatch({ type: 'SET_PLUGINS', payload: plugins })
+      dispatch(setPlugins(plugins))
       // Reset selection to avoid pointing to a different marketplace after re-sort
-      dispatch({ type: 'SET_SELECTED_INDEX', payload: 0 })
-      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+      dispatch(setSelectedIndex(0))
+      dispatch(setMessage(`✅ ${result.message}`))
     } else {
       // Keep dialog open and show error inline
-      dispatch({
-        type: 'SET_ADD_MARKETPLACE_ERROR',
-        payload: result.error || result.message,
-      })
+      dispatch(setAddMarketplaceError(result.error || result.message))
     }
   }
 
@@ -604,35 +666,32 @@ export default function App() {
    * @param marketplaceId - Marketplace identifier to remove
    */
   async function handleRemoveMarketplace(marketplaceId: string) {
-    dispatch({
-      type: 'START_MARKETPLACE_OPERATION',
-      payload: { operation: 'removing', marketplaceId },
-    })
+    dispatch(
+      startMarketplaceOperation({ operation: 'removing', marketplaceId }),
+    )
 
     const result = await removeMarketplace(marketplaceId)
 
-    dispatch({ type: 'END_MARKETPLACE_OPERATION' })
+    dispatch(endMarketplaceOperation())
 
     if (result.success) {
       // Reload marketplaces to get fresh state
       const marketplaces = loadMarketplaces()
-      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
+      dispatch(setMarketplaces(marketplaces))
       // Also reload plugins as removed marketplace's plugins should be gone
       const plugins = loadAllPlugins()
-      dispatch({ type: 'SET_PLUGINS', payload: plugins })
-      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+      dispatch(setPlugins(plugins))
+      dispatch(setMessage(`✅ ${result.message}`))
       // Reset selection if needed
       if (state.selectedIndex >= marketplaces.length) {
-        dispatch({
-          type: 'SET_SELECTED_INDEX',
-          payload: Math.max(0, marketplaces.length - 1),
-        })
+        dispatch(setSelectedIndex(Math.max(0, marketplaces.length - 1)))
       }
     } else {
-      dispatch({
-        type: 'SET_MESSAGE',
-        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
-      })
+      dispatch(
+        setMessage(
+          `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+        ),
+      )
     }
   }
 
@@ -641,29 +700,29 @@ export default function App() {
    * @param marketplaceId - Optional marketplace identifier. If omitted, updates all.
    */
   async function handleUpdateMarketplace(marketplaceId?: string) {
-    dispatch({
-      type: 'START_MARKETPLACE_OPERATION',
-      payload: { operation: 'updating', marketplaceId },
-    })
+    dispatch(
+      startMarketplaceOperation({ operation: 'updating', marketplaceId }),
+    )
 
     const result = await updateMarketplace(marketplaceId)
 
-    dispatch({ type: 'END_MARKETPLACE_OPERATION' })
+    dispatch(endMarketplaceOperation())
 
     if (result.success) {
       // Reload marketplaces and plugins to get fresh state
       const marketplaces = loadMarketplaces()
-      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
+      dispatch(setMarketplaces(marketplaces))
       const plugins = loadAllPlugins()
-      dispatch({ type: 'SET_PLUGINS', payload: plugins })
+      dispatch(setPlugins(plugins))
       // Reset selection to avoid pointing to a different marketplace after re-sort
-      dispatch({ type: 'SET_SELECTED_INDEX', payload: 0 })
-      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+      dispatch(setSelectedIndex(0))
+      dispatch(setMessage(`✅ ${result.message}`))
     } else {
-      dispatch({
-        type: 'SET_MESSAGE',
-        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
-      })
+      dispatch(
+        setMessage(
+          `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+        ),
+      )
     }
   }
 
@@ -676,25 +735,25 @@ export default function App() {
     marketplaceId: string,
     currentValue: boolean,
   ) {
-    dispatch({
-      type: 'START_MARKETPLACE_OPERATION',
-      payload: { operation: 'updating', marketplaceId },
-    })
+    dispatch(
+      startMarketplaceOperation({ operation: 'updating', marketplaceId }),
+    )
 
     const result = await toggleAutoUpdate(marketplaceId, currentValue)
 
-    dispatch({ type: 'END_MARKETPLACE_OPERATION' })
+    dispatch(endMarketplaceOperation())
 
     if (result.success) {
       // Reload marketplaces to get fresh state
       const marketplaces = loadMarketplaces()
-      dispatch({ type: 'SET_MARKETPLACES', payload: marketplaces })
-      dispatch({ type: 'SET_MESSAGE', payload: `✅ ${result.message}` })
+      dispatch(setMarketplaces(marketplaces))
+      dispatch(setMessage(`✅ ${result.message}`))
     } else {
-      dispatch({
-        type: 'SET_MESSAGE',
-        payload: `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
-      })
+      dispatch(
+        setMessage(
+          `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+        ),
+      )
     }
   }
 
@@ -705,13 +764,10 @@ export default function App() {
    */
   function handleBrowseMarketplacePlugins(marketplaceId: string) {
     // Switch to Discover tab
-    dispatch({ type: 'SET_TAB', payload: 'discover' })
+    dispatch(setTab('discover'))
     // Set search query to filter by marketplace
-    dispatch({ type: 'SET_SEARCH_QUERY', payload: marketplaceId })
-    dispatch({
-      type: 'SET_MESSAGE',
-      payload: `Browsing plugins from ${marketplaceId}`,
-    })
+    dispatch(setSearchQuery(marketplaceId))
+    dispatch(setMessage(`Browsing plugins from ${marketplaceId}`))
   }
 
   // Keyboard input handling
@@ -724,7 +780,7 @@ export default function App() {
     // Handle help overlay
     if (state.showHelp) {
       if (input === 'h' || key.escape) {
-        dispatch({ type: 'TOGGLE_HELP' })
+        dispatch(toggleHelp())
       }
       return
     }
@@ -737,20 +793,20 @@ export default function App() {
 
     // Toggle help (h key)
     if (input === 'h') {
-      dispatch({ type: 'TOGGLE_HELP' })
+      dispatch(toggleHelp())
       return
     }
 
     // Handle plugin uninstall confirmation dialog
     if (state.confirmUninstall && state.operationPluginId) {
       if (input === 'y' || input === 'Y' || key.return) {
-        dispatch({ type: 'HIDE_CONFIRM_UNINSTALL' })
+        dispatch(hideConfirmUninstall())
         handleUninstall(state.operationPluginId)
         return
       }
       if (input === 'n' || input === 'N' || key.escape) {
-        dispatch({ type: 'HIDE_CONFIRM_UNINSTALL' })
-        dispatch({ type: 'SET_MESSAGE', payload: 'Uninstall cancelled' })
+        dispatch(hideConfirmUninstall())
+        dispatch(setMessage('Uninstall cancelled'))
         return
       }
       return
@@ -759,13 +815,13 @@ export default function App() {
     // Handle marketplace remove confirmation dialog
     if (state.confirmRemoveMarketplace && state.operationMarketplaceId) {
       if (input === 'y' || input === 'Y' || key.return) {
-        dispatch({ type: 'HIDE_CONFIRM_REMOVE_MARKETPLACE' })
+        dispatch(hideConfirmRemoveMarketplace())
         handleRemoveMarketplace(state.operationMarketplaceId)
         return
       }
       if (input === 'n' || input === 'N' || key.escape) {
-        dispatch({ type: 'HIDE_CONFIRM_REMOVE_MARKETPLACE' })
-        dispatch({ type: 'SET_MESSAGE', payload: 'Remove cancelled' })
+        dispatch(hideConfirmRemoveMarketplace())
+        dispatch(setMessage('Remove cancelled'))
         return
       }
       return
@@ -780,24 +836,18 @@ export default function App() {
       }
       // Cancel on Escape
       if (key.escape) {
-        dispatch({ type: 'HIDE_ADD_MARKETPLACE_DIALOG' })
-        dispatch({ type: 'SET_MESSAGE', payload: 'Add marketplace cancelled' })
+        dispatch(hideAddMarketplaceDialog())
+        dispatch(setMessage('Add marketplace cancelled'))
         return
       }
       // Backspace
       if (key.backspace || key.delete) {
-        dispatch({
-          type: 'SET_SEARCH_QUERY',
-          payload: state.searchQuery.slice(0, -1),
-        })
+        dispatch(setSearchQuery(state.searchQuery.slice(0, -1)))
         return
       }
       // Character input
       if (input && input.length === 1 && !key.ctrl && !key.meta) {
-        dispatch({
-          type: 'SET_SEARCH_QUERY',
-          payload: state.searchQuery + input,
-        })
+        dispatch(setSearchQuery(state.searchQuery + input))
         return
       }
       return
@@ -808,23 +858,23 @@ export default function App() {
       const selectedMarketplace =
         getFilteredMarketplaces(state)[state.selectedIndex]
       if (!selectedMarketplace) {
-        dispatch({ type: 'HIDE_MARKETPLACE_ACTION_MENU' })
+        dispatch(hideMarketplaceActionMenu())
         return
       }
 
       // Up/Down arrow navigation
       if (key.upArrow || (key.ctrl && input === 'p')) {
-        dispatch({ type: 'MOVE_ACTION_MENU_SELECTION', payload: 'up' })
+        dispatch(moveActionMenuSelection('up'))
         return
       }
       if (key.downArrow || (key.ctrl && input === 'n')) {
-        dispatch({ type: 'MOVE_ACTION_MENU_SELECTION', payload: 'down' })
+        dispatch(moveActionMenuSelection('down'))
         return
       }
 
       // Execute action on Enter
       if (key.return) {
-        dispatch({ type: 'HIDE_MARKETPLACE_ACTION_MENU' })
+        dispatch(hideMarketplaceActionMenu())
         const actionIndex = state.actionMenuSelectedIndex
         if (actionIndex === 0) {
           // Browse plugins
@@ -840,17 +890,14 @@ export default function App() {
           )
         } else if (actionIndex === 3) {
           // Remove marketplace (show confirmation)
-          dispatch({
-            type: 'SHOW_CONFIRM_REMOVE_MARKETPLACE',
-            payload: selectedMarketplace.id,
-          })
+          dispatch(showConfirmRemoveMarketplace(selectedMarketplace.id))
         }
         return
       }
 
       // Close menu on Escape
       if (key.escape) {
-        dispatch({ type: 'HIDE_MARKETPLACE_ACTION_MENU' })
+        dispatch(hideMarketplaceActionMenu())
         return
       }
       return
@@ -860,7 +907,7 @@ export default function App() {
     if (state.focusZone === 'search') {
       // Up arrow: move focus to tabbar
       if (key.upArrow || (key.ctrl && input === 'p')) {
-        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        dispatch(setFocusZone('tabbar'))
         return
       }
       // Down arrow, Enter, or Escape: move focus to list
@@ -870,21 +917,15 @@ export default function App() {
         key.downArrow ||
         (key.ctrl && input === 'n')
       ) {
-        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'list' })
+        dispatch(setFocusZone('list'))
         return
       }
       if (key.backspace || key.delete) {
-        dispatch({
-          type: 'SET_SEARCH_QUERY',
-          payload: state.searchQuery.slice(0, -1),
-        })
+        dispatch(setSearchQuery(state.searchQuery.slice(0, -1)))
         return
       }
       if (input && input.length === 1 && !key.ctrl && !key.meta) {
-        dispatch({
-          type: 'SET_SEARCH_QUERY',
-          payload: state.searchQuery + input,
-        })
+        dispatch(setSearchQuery(state.searchQuery + input))
         return
       }
       return
@@ -895,27 +936,24 @@ export default function App() {
       // Down arrow: move to search (or list if no search)
       if (key.downArrow || (key.ctrl && input === 'n')) {
         const zones = getAvailableZones(state.activeTab)
-        dispatch({
-          type: 'SET_FOCUS_ZONE',
-          payload: zones.includes('search') ? 'search' : 'list',
-        })
+        dispatch(setFocusZone(zones.includes('search') ? 'search' : 'list'))
         return
       }
       // Left/Right arrows and Ctrl+B/F: tab switching (only in tabbar)
       // Keep focus on tabbar after navigation
       if (key.leftArrow || (key.ctrl && input === 'b')) {
-        dispatch({ type: 'PREV_TAB' })
-        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        dispatch(prevTab())
+        dispatch(setFocusZone('tabbar'))
         return
       }
       if (key.rightArrow || (key.ctrl && input === 'f')) {
-        dispatch({ type: 'NEXT_TAB' })
-        dispatch({ type: 'SET_FOCUS_ZONE', payload: 'tabbar' })
+        dispatch(nextTab())
+        dispatch(setFocusZone('tabbar'))
         return
       }
       // Tab key: next tab (resets focus to list)
       if (key.tab) {
-        dispatch({ type: 'NEXT_TAB' })
+        dispatch(nextTab())
         return
       }
       return
@@ -932,25 +970,27 @@ export default function App() {
 
       // Left arrow: exit component mode, go back to list
       if (key.leftArrow || (key.ctrl && input === 'b') || key.escape) {
-        dispatch({ type: 'EXIT_COMPONENT_MODE' })
+        dispatch(exitComponentMode())
         return
       }
 
       // Up/Down: navigate components
       if (key.upArrow || (key.ctrl && input === 'p')) {
-        dispatch({
-          type: 'MOVE_COMPONENT_SELECTION',
-          payload: 'up',
-          maxIndex: Math.max(0, components.length - 1),
-        })
+        dispatch(
+          moveComponentSelection({
+            direction: 'up',
+            maxIndex: Math.max(0, components.length - 1),
+          }),
+        )
         return
       }
       if (key.downArrow || (key.ctrl && input === 'n')) {
-        dispatch({
-          type: 'MOVE_COMPONENT_SELECTION',
-          payload: 'down',
-          maxIndex: Math.max(0, components.length - 1),
-        })
+        dispatch(
+          moveComponentSelection({
+            direction: 'down',
+            maxIndex: Math.max(0, components.length - 1),
+          }),
+        )
         return
       }
 
@@ -963,19 +1003,26 @@ export default function App() {
       if (state.selectedIndex === 0) {
         // At top of list: move focus to search (or tabbar if no search)
         const zones = getAvailableZones(state.activeTab)
-        dispatch({
-          type: 'SET_FOCUS_ZONE',
-          payload: zones.includes('search') ? 'search' : 'tabbar',
-        })
+        dispatch(setFocusZone(zones.includes('search') ? 'search' : 'tabbar'))
       } else {
-        dispatch({ type: 'MOVE_SELECTION', payload: 'up' })
+        dispatch(
+          moveSelection({
+            direction: 'up',
+            maxIndex: Math.max(0, getItemsForTab(state).length - 1),
+          }),
+        )
       }
       return
     }
 
     // Down arrow: move down in list
     if (key.downArrow || (key.ctrl && input === 'n')) {
-      dispatch({ type: 'MOVE_SELECTION', payload: 'down' })
+      dispatch(
+        moveSelection({
+          direction: 'down',
+          maxIndex: Math.max(0, getItemsForTab(state).length - 1),
+        }),
+      )
       return
     }
 
@@ -992,7 +1039,7 @@ export default function App() {
       if (selectedPlugin?.componentsDetailed) {
         const components = flattenComponents(selectedPlugin.componentsDetailed)
         if (components.length > 0) {
-          dispatch({ type: 'ENTER_COMPONENT_MODE' })
+          dispatch(enterComponentMode())
           return
         }
       }
@@ -1000,7 +1047,7 @@ export default function App() {
 
     // Tab key: next tab (from list zone)
     if (key.tab) {
-      dispatch({ type: 'NEXT_TAB' })
+      dispatch(nextTab())
       return
     }
 
@@ -1012,7 +1059,7 @@ export default function App() {
       'marketplaces',
     ]
     if (input === '/' && searchEnabledTabs.includes(state.activeTab)) {
-      dispatch({ type: 'SET_FOCUS_ZONE', payload: 'search' })
+      dispatch(setFocusZone('search'))
       return
     }
 
@@ -1033,21 +1080,20 @@ export default function App() {
           // Toggle installed plugin
           try {
             const newState = togglePlugin(selectedPlugin.id)
-            dispatch({
-              type: 'TOGGLE_PLUGIN_ENABLED',
-              payload: selectedPlugin.id,
-            })
-            dispatch({
-              type: 'SET_MESSAGE',
-              payload: newState
-                ? `✅ ${selectedPlugin.name} enabled`
-                : `❌ ${selectedPlugin.name} disabled`,
-            })
+            dispatch(togglePluginEnabled(selectedPlugin.id))
+            dispatch(
+              setMessage(
+                newState
+                  ? `✅ ${selectedPlugin.name} enabled`
+                  : `❌ ${selectedPlugin.name} disabled`,
+              ),
+            )
           } catch (error) {
-            dispatch({
-              type: 'SET_MESSAGE',
-              payload: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            })
+            dispatch(
+              setMessage(
+                `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              ),
+            )
           }
         }
       }
@@ -1066,21 +1112,20 @@ export default function App() {
       if (selectedPlugin && selectedPlugin.isInstalled) {
         try {
           const newState = togglePlugin(selectedPlugin.id)
-          dispatch({
-            type: 'TOGGLE_PLUGIN_ENABLED',
-            payload: selectedPlugin.id,
-          })
-          dispatch({
-            type: 'SET_MESSAGE',
-            payload: newState
-              ? `✅ ${selectedPlugin.name} enabled`
-              : `❌ ${selectedPlugin.name} disabled`,
-          })
+          dispatch(togglePluginEnabled(selectedPlugin.id))
+          dispatch(
+            setMessage(
+              newState
+                ? `✅ ${selectedPlugin.name} enabled`
+                : `❌ ${selectedPlugin.name} disabled`,
+            ),
+          )
         } catch (error) {
-          dispatch({
-            type: 'SET_MESSAGE',
-            payload: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          })
+          dispatch(
+            setMessage(
+              `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            ),
+          )
         }
       }
       return
@@ -1093,28 +1138,24 @@ export default function App() {
         name: 'date',
         date: 'installs',
       }
-      dispatch({
-        type: 'SET_SORT',
-        payload: { by: nextSort[state.sortBy], order: state.sortOrder },
-      })
+      dispatch(setSort({ by: nextSort[state.sortBy], order: state.sortOrder }))
       return
     }
 
     // Toggle sort order (S key)
     if (input === 'S' && state.activeTab === 'discover') {
-      dispatch({
-        type: 'SET_SORT',
-        payload: {
+      dispatch(
+        setSort({
           by: state.sortBy,
           order: state.sortOrder === 'asc' ? 'desc' : 'asc',
-        },
-      })
+        }),
+      )
       return
     }
 
     // Clear search (Escape)
     if (key.escape && state.searchQuery) {
-      dispatch({ type: 'SET_SEARCH_QUERY', payload: '' })
+      dispatch(setSearchQuery(''))
       return
     }
 
@@ -1124,14 +1165,14 @@ export default function App() {
       if (key.return || input === 'm') {
         const selectedMarketplace = filteredMarketplaces[state.selectedIndex]
         if (selectedMarketplace) {
-          dispatch({ type: 'SHOW_MARKETPLACE_ACTION_MENU' })
+          dispatch(showMarketplaceActionMenuAction())
         }
         return
       }
 
       // Add marketplace (a key)
       if (input === 'a') {
-        dispatch({ type: 'SHOW_ADD_MARKETPLACE_DIALOG' })
+        dispatch(showAddMarketplaceDialog())
         return
       }
 
@@ -1139,10 +1180,7 @@ export default function App() {
       if (input === 'd' || key.backspace || key.delete) {
         const selectedMarketplace = filteredMarketplaces[state.selectedIndex]
         if (selectedMarketplace) {
-          dispatch({
-            type: 'SHOW_CONFIRM_REMOVE_MARKETPLACE',
-            payload: selectedMarketplace.id,
-          })
+          dispatch(showConfirmRemoveMarketplace(selectedMarketplace.id))
         }
         return
       }
@@ -1172,10 +1210,7 @@ export default function App() {
       if (selectedPlugin && !selectedPlugin.isInstalled) {
         handleInstall(selectedPlugin.id)
       } else if (selectedPlugin?.isInstalled) {
-        dispatch({
-          type: 'SET_MESSAGE',
-          payload: '⚠️ Plugin is already installed',
-        })
+        dispatch(setMessage('⚠️ Plugin is already installed'))
       }
       return
     }
@@ -1190,9 +1225,9 @@ export default function App() {
       const items = getItemsForTab(state) as Plugin[]
       const selectedPlugin = items[state.selectedIndex]
       if (selectedPlugin && selectedPlugin.isInstalled) {
-        dispatch({ type: 'SHOW_CONFIRM_UNINSTALL', payload: selectedPlugin.id })
+        dispatch(showConfirmUninstall(selectedPlugin.id))
       } else if (selectedPlugin && !selectedPlugin.isInstalled) {
-        dispatch({ type: 'SET_MESSAGE', payload: '⚠️ Plugin is not installed' })
+        dispatch(setMessage('⚠️ Plugin is not installed'))
       }
       return
     }

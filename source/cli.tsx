@@ -16,7 +16,9 @@
 
 import { withFullScreen } from 'fullscreen-ink'
 import { match, P } from 'ts-pattern'
+import { Provider } from 'react-redux'
 import App from './app.js'
+import { store } from './store/index.js'
 import {
   loadAllPlugins,
   loadInstalledPlugins,
@@ -355,7 +357,11 @@ if (command) {
 
   // Use fullscreen-ink for alternate screen buffer management
   // This prevents rendering artifacts when switching tabs
-  const ink = withFullScreen(<App />)
+  const ink = withFullScreen(
+    <Provider store={store}>
+      <App />
+    </Provider>,
+  )
   ink.start()
   ink.waitUntilExit()
 }
