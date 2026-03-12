@@ -1,6 +1,6 @@
 /**
- * Plugin actions service for install/uninstall operations
- * Executes `claude plugin install/uninstall` as subprocess
+ * Plugin actions service for install/uninstall/update operations
+ * Executes `claude plugin install/uninstall/update` as subprocess
  */
 
 import { spawn } from 'node:child_process'
@@ -30,13 +30,61 @@ export function uninstallPlugin(pluginId: string): Promise<PluginActionResult> {
 }
 
 /**
- * Execute a plugin command (install/uninstall)
- * @param action - 'install' or 'uninstall'
+ * Update a plugin via Claude CLI
+ * @param pluginId - Plugin identifier
+ * @returns Promise resolving to action result
+ */
+export function updatePlugin(pluginId: string): Promise<PluginActionResult> {
+  return executePluginAction('update', pluginId)
+}
+
+/**
+ * Result of a bulk update operation
+ */
+export interface UpdateAllResult {
+  total: number
+  succeeded: number
+  failed: number
+  results: Array<{ pluginId: string; result: PluginActionResult }>
+}
+
+/**
+ * Update all plugins sequentially
+ * @param pluginIds - Array of plugin identifiers to update
+ * @param onProgress - Optional callback for progress reporting
+ * @returns Promise resolving to bulk update result
+ * @example
+ * const result = await updateAllPlugins(['ctx7@official', 'sup@official'], (cur, total, id) => {
+ *   console.log(`Updating (${cur}/${total}): ${id}...`)
+ * })
+ */
+export async function updateAllPlugins(
+  pluginIds: string[],
+  onProgress?: (current: number, total: number, pluginId: string) => void,
+): Promise<UpdateAllResult> {
+  const results: UpdateAllResult['results'] = []
+  for (let i = 0; i < pluginIds.length; i++) {
+    const pluginId = pluginIds[i]!
+    onProgress?.(i + 1, pluginIds.length, pluginId)
+    const result = await updatePlugin(pluginId)
+    results.push({ pluginId, result })
+  }
+  return {
+    total: pluginIds.length,
+    succeeded: results.filter((r) => r.result.success).length,
+    failed: results.filter((r) => !r.result.success).length,
+    results,
+  }
+}
+
+/**
+ * Execute a plugin command (install/uninstall/update)
+ * @param action - 'install', 'uninstall', or 'update'
  * @param pluginId - Plugin identifier
  * @returns Promise resolving to action result
  */
 function executePluginAction(
-  action: 'install' | 'uninstall',
+  action: 'install' | 'uninstall' | 'update',
   pluginId: string,
 ): Promise<PluginActionResult> {
   return new Promise((resolve) => {
@@ -60,7 +108,7 @@ function executePluginAction(
       if (code === 0) {
         resolve({
           success: true,
-          message: `${action === 'install' ? 'Installed' : 'Uninstalled'} ${pluginId}`,
+          message: `${action === 'install' ? 'Installed' : action === 'uninstall' ? 'Uninstalled' : 'Updated'} ${pluginId}`,
         })
       } else {
         resolve({

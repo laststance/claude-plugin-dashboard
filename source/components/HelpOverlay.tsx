@@ -32,6 +32,7 @@ const helpSections: HelpSection[] = [
     items: [
       { key: 'i, Enter', description: 'Install / Toggle plugin' },
       { key: 'u', description: 'Uninstall plugin' },
+      { key: 'U', description: 'Update all installed plugins' },
       { key: 'Space', description: 'Toggle enable/disable' },
       { key: 's/S', description: 'Sort options / order' },
     ],
