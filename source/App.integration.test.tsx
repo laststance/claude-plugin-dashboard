@@ -104,7 +104,7 @@ const waitForRender = () =>
 const waitFor = async (
   lastFrame: () => string | undefined,
   predicate: (frame: string) => boolean,
-  timeout = 3000,
+  timeout = process.env.CI ? 5000 : 3000,
   interval = 50,
 ): Promise<string> => {
   const start = Date.now()
@@ -295,8 +295,9 @@ describe('App component', () => {
       const { lastFrame, stdin } = render(<AppWithProvider />)
       await waitFor(lastFrame, (f) => f.includes('1/2'))
 
-      // Press Ctrl+N
+      // Press Ctrl+N — add render delay for CI coverage overhead
       stdin.write('\x0E')
+      await waitForRender()
       await waitFor(lastFrame, (f) => f.includes('2/2') && !f.includes('1/2'))
 
       expect(lastFrame()).toContain('2/2')
