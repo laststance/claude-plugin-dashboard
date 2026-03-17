@@ -25,6 +25,4 @@ export {
   // Utility functions
   hasAnyComponents,
   getTotalComponentCount,
-  // Types
-  type SkillMdFullResult,
 } from './components/index.js'

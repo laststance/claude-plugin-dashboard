@@ -71,8 +71,8 @@ export default function KeyHints({
   return (
     <Box borderStyle="single" borderColor="gray" paddingX={1} marginTop={1}>
       <Box gap={2} flexWrap="wrap">
-        {allHints.map((hint, index) => (
-          <Box key={index} gap={1}>
+        {allHints.map((hint) => (
+          <Box key={`${hint.key}-${hint.action}`} gap={1}>
             <Text bold color="white">
               {hint.key}
             </Text>
