@@ -11,7 +11,7 @@ import type { ComponentInfo, ComponentDetailedInfo } from '../../types/index.js'
 /**
  * Result of parsing full SKILL.md content
  */
-export interface SkillMdFullResult {
+interface SkillMdFullResult {
   description?: string
   allowedTools?: string[]
   fullDescription?: string

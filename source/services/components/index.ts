@@ -19,7 +19,6 @@ export {
   getSkillDetails,
   parseSkillMdFull,
   getSkillDetailedInfo,
-  type SkillMdFullResult,
 } from './skillService.js'
 
 export {

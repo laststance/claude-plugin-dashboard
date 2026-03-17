@@ -64,7 +64,10 @@ export default function ErrorsTab({ errors, selectedIndex }: ErrorsTabProps) {
             const isSelected = index === selectedIndex
 
             return (
-              <Box key={`${error.pluginId}-${index}`} paddingX={1}>
+              <Box
+                key={`${error.pluginId}-${error.type}-${error.timestamp}-${index}`}
+                paddingX={1}
+              >
                 <Box width={2}>
                   {isSelected ? (
                     <Text color="cyan">{'>'}</Text>
