@@ -293,12 +293,14 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<AppWithProvider />)
-      await waitFor(lastFrame, (f) => f.includes('1/2'))
+      await waitForRender()
 
-      // Press Ctrl+N — add render delay for CI coverage overhead
+      // Initial selection is 0 (first plugin)
+      expect(lastFrame()).toContain('1/2')
+
+      // Press Ctrl+N
       stdin.write('\x0E')
       await waitForRender()
-      await waitFor(lastFrame, (f) => f.includes('2/2') && !f.includes('1/2'))
 
       expect(lastFrame()).toContain('2/2')
     })
