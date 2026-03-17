@@ -33,6 +33,17 @@ vi.mock('./services/pluginActionsService.js', () => ({
   uninstallPlugin: vi.fn(() =>
     Promise.resolve({ success: true, message: 'Uninstalled' }),
   ),
+  updatePlugin: vi.fn(() =>
+    Promise.resolve({ success: true, message: 'Updated' }),
+  ),
+  updateAllPlugins: vi.fn(() =>
+    Promise.resolve({
+      total: 2,
+      succeeded: 2,
+      failed: 0,
+      results: [],
+    }),
+  ),
 }))
 
 // Import after mocks - this imports from the actual app.tsx
@@ -108,6 +119,8 @@ describe('initialState', () => {
     expect(initialState.operation).toBe('idle')
     expect(initialState.operationPluginId).toBe(null)
     expect(initialState.confirmUninstall).toBe(false)
+    expect(initialState.confirmUpdateAll).toBe(false)
+    expect(initialState.updateProgress).toBe(null)
     expect(initialState.showHelp).toBe(false)
   })
 })
@@ -399,6 +412,16 @@ describe('appReducer', () => {
 
       expect(result.operation).toBe('uninstalling')
       expect(result.message).toBe('Uninstalling p1@m...')
+    })
+
+    it('START_OPERATION sets updating operation', () => {
+      const result = appReducer(initialState, {
+        type: 'START_OPERATION',
+        payload: { operation: 'updating', pluginId: 'p1@m' },
+      })
+
+      expect(result.operation).toBe('updating')
+      expect(result.message).toBe('Updating plugins...')
     })
 
     it('END_OPERATION resets operation state', () => {

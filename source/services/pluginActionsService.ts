@@ -1,6 +1,6 @@
 /**
- * Plugin actions service for install/uninstall operations
- * Executes `claude plugin install/uninstall` as subprocess
+ * Plugin actions service for install/uninstall/update operations
+ * Executes `claude plugin install/uninstall/update` as subprocess
  */
 
 import { spawn } from 'node:child_process'
@@ -30,14 +30,70 @@ export function uninstallPlugin(pluginId: string): Promise<PluginActionResult> {
 }
 
 /**
- * Execute a plugin command (install/uninstall)
- * @param action - 'install' or 'uninstall'
+ * Update a plugin via Claude CLI
  * @param pluginId - Plugin identifier
  * @returns Promise resolving to action result
  */
+export function updatePlugin(pluginId: string): Promise<PluginActionResult> {
+  return executePluginAction('update', pluginId)
+}
+
+/**
+ * Result of a bulk update operation
+ */
+export interface UpdateAllResult {
+  total: number
+  succeeded: number
+  failed: number
+  results: Array<{ pluginId: string; result: PluginActionResult }>
+}
+
+/**
+ * Update all plugins sequentially
+ * @param pluginIds - Array of plugin identifiers to update
+ * @param onProgress - Optional callback for progress reporting
+ * @returns Promise resolving to bulk update result
+ * @example
+ * const result = await updateAllPlugins(['ctx7@official', 'sup@official'], (cur, total, id) => {
+ *   console.log(`Updating (${cur}/${total}): ${id}...`)
+ * })
+ */
+export async function updateAllPlugins(
+  pluginIds: string[],
+  onProgress?: (current: number, total: number, pluginId: string) => void,
+): Promise<UpdateAllResult> {
+  const results: UpdateAllResult['results'] = []
+  for (let i = 0; i < pluginIds.length; i++) {
+    const pluginId = pluginIds[i]!
+    onProgress?.(i + 1, pluginIds.length, pluginId)
+    const result = await updatePlugin(pluginId)
+    results.push({ pluginId, result })
+  }
+  return {
+    total: pluginIds.length,
+    succeeded: results.filter((r) => r.result.success).length,
+    failed: results.filter((r) => !r.result.success).length,
+    results,
+  }
+}
+
+/** Timeout for subprocess operations (60 seconds) */
+const SUBPROCESS_TIMEOUT_MS = 60_000
+
+/**
+ * Execute a plugin command (install/uninstall/update) with a timeout guard
+ * @param action - 'install', 'uninstall', or 'update'
+ * @param pluginId - Plugin identifier
+ * @param timeoutMs - Timeout in milliseconds (default: 60s)
+ * @returns Promise resolving to action result
+ * @example
+ * const result = await executePluginAction('install', 'my-plugin@marketplace')
+ * // => { success: true, message: 'Installed my-plugin@marketplace' }
+ */
 function executePluginAction(
-  action: 'install' | 'uninstall',
+  action: 'install' | 'uninstall' | 'update',
   pluginId: string,
+  timeoutMs: number = SUBPROCESS_TIMEOUT_MS,
 ): Promise<PluginActionResult> {
   return new Promise((resolve) => {
     const child = spawn('claude', ['plugin', action, pluginId], {
@@ -47,6 +103,18 @@ function executePluginAction(
 
     let stdout = ''
     let stderr = ''
+    let settled = false
+
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      child.kill('SIGTERM')
+      resolve({
+        success: false,
+        message: `Timed out ${action}ing ${pluginId}`,
+        error: `Process did not complete within ${timeoutMs / 1000}s`,
+      })
+    }, timeoutMs)
 
     child.stdout?.on('data', (data: Buffer) => {
       stdout += data.toString()
@@ -57,10 +125,13 @@ function executePluginAction(
     })
 
     child.on('close', (code) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
       if (code === 0) {
         resolve({
           success: true,
-          message: `${action === 'install' ? 'Installed' : 'Uninstalled'} ${pluginId}`,
+          message: `${action === 'install' ? 'Installed' : action === 'uninstall' ? 'Uninstalled' : 'Updated'} ${pluginId}`,
         })
       } else {
         resolve({
@@ -72,6 +143,9 @@ function executePluginAction(
     })
 
     child.on('error', (err: Error) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
       resolve({
         success: false,
         message: 'Failed to execute claude command',

@@ -353,12 +353,16 @@ export interface AppState {
   error: string | null
   /** Status message */
   message: string | null
-  /** Current async operation (install/uninstall) */
-  operation: 'idle' | 'installing' | 'uninstalling'
+  /** Current async operation (install/uninstall/update) */
+  operation: 'idle' | 'installing' | 'uninstalling' | 'updating'
   /** Plugin ID being operated on */
   operationPluginId: string | null
   /** Whether confirmation dialog is showing */
   confirmUninstall: boolean
+  /** Whether update all confirmation dialog is showing */
+  confirmUpdateAll: boolean
+  /** Progress of bulk update operation */
+  updateProgress: { current: number; total: number; pluginId: string } | null
   /** Whether help overlay is showing */
   showHelp: boolean
   /** Current marketplace operation */
@@ -403,7 +407,10 @@ export type Action =
   | { type: 'PREV_TAB' }
   | {
       type: 'START_OPERATION'
-      payload: { operation: 'installing' | 'uninstalling'; pluginId: string }
+      payload: {
+        operation: 'installing' | 'uninstalling' | 'updating'
+        pluginId: string
+      }
     }
   | { type: 'END_OPERATION' }
   | { type: 'SHOW_CONFIRM_UNINSTALL'; payload: string }

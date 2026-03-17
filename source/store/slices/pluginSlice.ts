@@ -10,7 +10,11 @@ import { setTab, nextTab, prevTab } from './uiSlice.js'
 /**
  * Plugin operation type
  */
-export type PluginOperation = 'idle' | 'installing' | 'uninstalling'
+export type PluginOperation =
+  | 'idle'
+  | 'installing'
+  | 'uninstalling'
+  | 'updating'
 
 /**
  * Plugin-specific state
@@ -24,6 +28,8 @@ export interface PluginState {
   operation: PluginOperation
   operationPluginId: string | null
   confirmUninstall: boolean
+  confirmUpdateAll: boolean
+  updateProgress: { current: number; total: number; pluginId: string } | null
   selectedComponentIndex: number
 }
 
@@ -39,6 +45,8 @@ const initialState: PluginState = {
   operation: 'idle',
   operationPluginId: null,
   confirmUninstall: false,
+  confirmUpdateAll: false,
+  updateProgress: null,
   selectedComponentIndex: 0,
 }
 
@@ -128,7 +136,7 @@ export const pluginSlice = createSlice({
     startOperation: (
       state,
       action: PayloadAction<{
-        operation: 'installing' | 'uninstalling'
+        operation: 'installing' | 'uninstalling' | 'updating'
         pluginId: string
       }>,
     ) => {
@@ -158,6 +166,41 @@ export const pluginSlice = createSlice({
     hideConfirmUninstall: (state) => {
       state.confirmUninstall = false
       state.operationPluginId = null
+    },
+
+    /**
+     * Show update all confirmation dialog
+     */
+    showConfirmUpdateAll: (state) => {
+      state.confirmUpdateAll = true
+    },
+
+    /**
+     * Hide update all confirmation dialog
+     */
+    hideConfirmUpdateAll: (state) => {
+      state.confirmUpdateAll = false
+    },
+
+    /**
+     * Set bulk update progress
+     */
+    setUpdateProgress: (
+      state,
+      action: PayloadAction<{
+        current: number
+        total: number
+        pluginId: string
+      }>,
+    ) => {
+      state.updateProgress = action.payload
+    },
+
+    /**
+     * Clear bulk update progress
+     */
+    clearUpdateProgress: (state) => {
+      state.updateProgress = null
     },
 
     /**
@@ -230,6 +273,10 @@ export const {
   endOperation,
   showConfirmUninstall,
   hideConfirmUninstall,
+  showConfirmUpdateAll,
+  hideConfirmUpdateAll,
+  setUpdateProgress,
+  clearUpdateProgress,
   setComponentIndex,
   moveComponentSelection,
   enterComponentMode,

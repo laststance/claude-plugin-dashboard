@@ -31,6 +31,7 @@ import { togglePlugin } from './services/settingsService.js'
 import {
   installPlugin,
   uninstallPlugin,
+  updateAllPlugins,
 } from './services/pluginActionsService.js'
 import {
   addMarketplace,
@@ -63,6 +64,10 @@ import {
   endOperation,
   showConfirmUninstall,
   hideConfirmUninstall,
+  showConfirmUpdateAll,
+  hideConfirmUpdateAll,
+  setUpdateProgress,
+  clearUpdateProgress,
   moveComponentSelection,
   enterComponentMode,
   exitComponentMode,
@@ -109,6 +114,8 @@ export const initialState: AppState = {
   operation: 'idle',
   operationPluginId: null,
   confirmUninstall: false,
+  confirmUpdateAll: false,
+  updateProgress: null,
   showHelp: false,
   marketplaceOperation: 'idle',
   operationMarketplaceId: null,
@@ -313,7 +320,9 @@ export function appReducer(state: AppState, action: Action): AppState {
         message:
           action.payload.operation === 'installing'
             ? `Installing ${action.payload.pluginId}...`
-            : `Uninstalling ${action.payload.pluginId}...`,
+            : action.payload.operation === 'uninstalling'
+              ? `Uninstalling ${action.payload.pluginId}...`
+              : `Updating plugins...`,
       }
 
     case 'END_OPERATION':
@@ -557,6 +566,8 @@ export default function App() {
     operation: pluginState.operation,
     operationPluginId: pluginState.operationPluginId,
     confirmUninstall: pluginState.confirmUninstall,
+    confirmUpdateAll: pluginState.confirmUpdateAll,
+    updateProgress: pluginState.updateProgress,
     selectedComponentIndex: pluginState.selectedComponentIndex,
     marketplaces: marketplaceState.marketplaces,
     marketplaceOperation: marketplaceState.marketplaceOperation,
@@ -628,6 +639,46 @@ export default function App() {
       dispatch(
         setMessage(
           `❌ ${result.message}${result.error ? `: ${result.error}` : ''}`,
+        ),
+      )
+    }
+  }
+
+  /**
+   * Handle updating all installed plugins sequentially
+   */
+  async function handleUpdateAllPlugins() {
+    const installed = state.plugins.filter((p) => p.isInstalled)
+    if (installed.length === 0) {
+      dispatch(setMessage('⚠️ No installed plugins to update'))
+      return
+    }
+
+    const pluginIds = installed.map((p) => p.id)
+    dispatch(startOperation({ operation: 'updating', pluginId: pluginIds[0]! }))
+
+    const result = await updateAllPlugins(
+      pluginIds,
+      (current, total, pluginId) => {
+        dispatch(setUpdateProgress({ current, total, pluginId }))
+      },
+    )
+
+    dispatch(clearUpdateProgress())
+    dispatch(endOperation())
+
+    // Reload plugins to get fresh state
+    const plugins = loadAllPlugins()
+    dispatch(setPlugins(plugins))
+
+    if (result.failed === 0) {
+      dispatch(
+        setMessage(`✅ Updated ${result.succeeded}/${result.total} plugins`),
+      )
+    } else {
+      dispatch(
+        setMessage(
+          `⚠️ Updated ${result.succeeded}/${result.total} (${result.failed} failed)`,
         ),
       )
     }
@@ -807,6 +858,21 @@ export default function App() {
       if (input === 'n' || input === 'N' || key.escape) {
         dispatch(hideConfirmUninstall())
         dispatch(setMessage('Uninstall cancelled'))
+        return
+      }
+      return
+    }
+
+    // Handle update all confirmation dialog
+    if (state.confirmUpdateAll) {
+      if (input === 'y' || input === 'Y' || key.return) {
+        dispatch(hideConfirmUpdateAll())
+        handleUpdateAllPlugins()
+        return
+      }
+      if (input === 'n' || input === 'N' || key.escape) {
+        dispatch(hideConfirmUpdateAll())
+        dispatch(setMessage('Update cancelled'))
         return
       }
       return
@@ -1215,6 +1281,20 @@ export default function App() {
       return
     }
 
+    // Update all plugins (U key = shift+u) - only on enabled/installed tabs
+    if (
+      input === 'U' &&
+      (state.activeTab === 'enabled' || state.activeTab === 'installed')
+    ) {
+      const installed = state.plugins.filter((p) => p.isInstalled)
+      if (installed.length === 0) {
+        dispatch(setMessage('⚠️ No installed plugins to update'))
+      } else {
+        dispatch(showConfirmUpdateAll())
+      }
+      return
+    }
+
     // Uninstall (u key) - only on enabled/installed/discover tabs
     if (
       input === 'u' &&
@@ -1427,6 +1507,13 @@ export default function App() {
         <ConfirmDialog message={`Uninstall ${state.operationPluginId}?`} />
       )}
 
+      {/* Plugin Update All Confirmation Dialog */}
+      {state.confirmUpdateAll && (
+        <ConfirmDialog
+          message={`Update all ${state.plugins.filter((p) => p.isInstalled).length} plugins?`}
+        />
+      )}
+
       {/* Marketplace Remove Confirmation Dialog */}
       {state.confirmRemoveMarketplace && state.operationMarketplaceId && (
         <ConfirmDialog
@@ -1445,10 +1532,14 @@ export default function App() {
       {/* Help Overlay */}
       <HelpOverlay isVisible={state.showHelp} />
 
-      {/* Status message */}
-      {state.message && (
+      {/* Status message / Update progress */}
+      {(state.message || state.updateProgress) && (
         <Box marginTop={1}>
-          <Text color="yellow">{state.message}</Text>
+          <Text color="yellow">
+            {state.updateProgress
+              ? `Updating (${state.updateProgress.current}/${state.updateProgress.total}): ${state.updateProgress.pluginId}...`
+              : state.message}
+          </Text>
         </Box>
       )}
 
@@ -1463,6 +1554,7 @@ export default function App() {
               { key: '/', action: 'search' },
               { key: 'i', action: 'install' },
               { key: 'u', action: 'uninstall' },
+              { key: 'U', action: 'update all' },
             ]
             const selectedPlugin = enabledPlugins[state.selectedIndex]
             if (selectedPlugin) {
@@ -1478,6 +1570,7 @@ export default function App() {
               { key: '/', action: 'search' },
               { key: 'i', action: 'install' },
               { key: 'u', action: 'uninstall' },
+              { key: 'U', action: 'update all' },
             ]
             const selectedPlugin = installedPlugins[state.selectedIndex]
             if (selectedPlugin) {
