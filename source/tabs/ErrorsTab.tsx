@@ -65,7 +65,7 @@ export default function ErrorsTab({ errors, selectedIndex }: ErrorsTabProps) {
 
             return (
               <Box
-                key={`${error.pluginId}-${error.type}-${error.timestamp}`}
+                key={`${error.pluginId}-${error.type}-${error.timestamp}-${index}`}
                 paddingX={1}
               >
                 <Box width={2}>
