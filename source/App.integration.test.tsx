@@ -297,7 +297,7 @@ describe('App component', () => {
 
       // Press Ctrl+N
       stdin.write('\x0E')
-      await waitForRender()
+      await waitFor(lastFrame, (f) => f.includes('2/2') && !f.includes('1/2'))
 
       expect(lastFrame()).toContain('2/2')
     })
