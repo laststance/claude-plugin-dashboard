@@ -346,25 +346,6 @@ export function appReducer(state: AppState, action: Action): AppState {
         operationPluginId: null,
       }
 
-    case 'SHOW_CONFIRM_UPDATE_ALL':
-      return {
-        ...state,
-        confirmUpdateAll: true,
-      }
-
-    case 'HIDE_CONFIRM_UPDATE_ALL':
-      return {
-        ...state,
-        confirmUpdateAll: false,
-      }
-
-    case 'SET_UPDATE_PROGRESS':
-      return {
-        ...state,
-        updateProgress: action.payload,
-        message: `Updating (${action.payload.current}/${action.payload.total}): ${action.payload.pluginId}...`,
-      }
-
     case 'TOGGLE_HELP':
       return {
         ...state,

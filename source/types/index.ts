@@ -415,12 +415,6 @@ export type Action =
   | { type: 'END_OPERATION' }
   | { type: 'SHOW_CONFIRM_UNINSTALL'; payload: string }
   | { type: 'HIDE_CONFIRM_UNINSTALL' }
-  | { type: 'SHOW_CONFIRM_UPDATE_ALL' }
-  | { type: 'HIDE_CONFIRM_UPDATE_ALL' }
-  | {
-      type: 'SET_UPDATE_PROGRESS'
-      payload: { current: number; total: number; pluginId: string }
-    }
   | { type: 'TOGGLE_HELP' }
   | { type: 'SET_FOCUS_ZONE'; payload: FocusZone }
   | { type: 'SHOW_CONFIRM_REMOVE_MARKETPLACE'; payload: string }
