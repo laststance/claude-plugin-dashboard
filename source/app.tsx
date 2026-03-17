@@ -1551,10 +1551,14 @@ export default function App() {
       {/* Help Overlay */}
       <HelpOverlay isVisible={state.showHelp} />
 
-      {/* Status message */}
-      {state.message && (
+      {/* Status message / Update progress */}
+      {(state.message || state.updateProgress) && (
         <Box marginTop={1}>
-          <Text color="yellow">{state.message}</Text>
+          <Text color="yellow">
+            {state.updateProgress
+              ? `Updating (${state.updateProgress.current}/${state.updateProgress.total}): ${state.updateProgress.pluginId}...`
+              : state.message}
+          </Text>
         </Box>
       )}
 

@@ -85,10 +85,38 @@ function createMockMarketplace(
 
 /**
  * Helper to wait for next render tick
- * Longer timeout for CI stability
+ * CI with coverage instrumentation needs longer timeout (2-10x overhead)
  */
 const waitForRender = () =>
-  new Promise((resolve) => setTimeout(resolve, process.env.CI ? 50 : 10))
+  new Promise((resolve) => setTimeout(resolve, process.env.CI ? 200 : 10))
+
+/**
+ * Polls lastFrame() until the predicate returns true or timeout is reached
+ * Use for waiting on async state transitions (data loading, async operations)
+ * @param lastFrame - ink-testing-library's lastFrame function
+ * @param predicate - condition to wait for
+ * @param timeout - max wait time in ms
+ * @param interval - polling interval in ms
+ * @returns the frame that matched
+ * @example
+ * await waitFor(lastFrame, (f) => f.includes('plugin-name'))
+ */
+const waitFor = async (
+  lastFrame: () => string | undefined,
+  predicate: (frame: string) => boolean,
+  timeout = 3000,
+  interval = 50,
+): Promise<string> => {
+  const start = Date.now()
+  while (Date.now() - start < timeout) {
+    const frame = lastFrame()
+    if (frame && predicate(frame)) return frame
+    await new Promise((resolve) => setTimeout(resolve, interval))
+  }
+  throw new Error(
+    `waitFor timed out after ${timeout}ms. Last frame:\n${lastFrame()}`,
+  )
+}
 
 describe('App component', () => {
   const mockLoadAllPlugins = vi.mocked(pluginService.loadAllPlugins)
@@ -265,7 +293,7 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<AppWithProvider />)
-      await waitForRender()
+      await waitFor(lastFrame, (f) => f.includes('1/2'))
 
       // Press Ctrl+N
       stdin.write('\x0E')
@@ -540,7 +568,7 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<AppWithProvider />)
-      await waitForRender()
+      await waitFor(lastFrame, (f) => f.includes('1/2'))
 
       // Move down first
       stdin.write('\x1B[B')
@@ -708,7 +736,7 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<AppWithProvider />)
-      await waitForRender()
+      await waitFor(lastFrame, (f) => f.includes('installed-plugin'))
 
       // Press i to install
       stdin.write('i')
@@ -872,7 +900,7 @@ describe('App component', () => {
       ])
 
       const { lastFrame, stdin } = render(<AppWithProvider />)
-      await waitForRender()
+      await waitFor(lastFrame, (f) => f.includes('installed-plugin'))
 
       // Press u to show confirmation
       stdin.write('u')

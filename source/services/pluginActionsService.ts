@@ -77,15 +77,23 @@ export async function updateAllPlugins(
   }
 }
 
+/** Timeout for subprocess operations (60 seconds) */
+const SUBPROCESS_TIMEOUT_MS = 60_000
+
 /**
- * Execute a plugin command (install/uninstall/update)
+ * Execute a plugin command (install/uninstall/update) with a timeout guard
  * @param action - 'install', 'uninstall', or 'update'
  * @param pluginId - Plugin identifier
+ * @param timeoutMs - Timeout in milliseconds (default: 60s)
  * @returns Promise resolving to action result
+ * @example
+ * const result = await executePluginAction('install', 'my-plugin@marketplace')
+ * // => { success: true, message: 'Installed my-plugin@marketplace' }
  */
 function executePluginAction(
   action: 'install' | 'uninstall' | 'update',
   pluginId: string,
+  timeoutMs: number = SUBPROCESS_TIMEOUT_MS,
 ): Promise<PluginActionResult> {
   return new Promise((resolve) => {
     const child = spawn('claude', ['plugin', action, pluginId], {
@@ -95,6 +103,18 @@ function executePluginAction(
 
     let stdout = ''
     let stderr = ''
+    let settled = false
+
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      child.kill('SIGTERM')
+      resolve({
+        success: false,
+        message: `Timed out ${action}ing ${pluginId}`,
+        error: `Process did not complete within ${timeoutMs / 1000}s`,
+      })
+    }, timeoutMs)
 
     child.stdout?.on('data', (data: Buffer) => {
       stdout += data.toString()
@@ -105,6 +125,9 @@ function executePluginAction(
     })
 
     child.on('close', (code) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
       if (code === 0) {
         resolve({
           success: true,
@@ -120,6 +143,9 @@ function executePluginAction(
     })
 
     child.on('error', (err: Error) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
       resolve({
         success: false,
         message: 'Failed to execute claude command',
