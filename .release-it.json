@@ -1,0 +1,17 @@
+{
+  "git": {
+    "changelog": null,
+    "tag": true,
+    "push": true,
+    "commit": false
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "releaseNotes": "git log --no-merges --pretty=format:\"* %s %h\" ${latestTag}...main"
+  },
+  "npm": {
+    "skipChecks": true,
+    "publishArgs": ["--provenance"]
+  }
+}
